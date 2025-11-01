@@ -1,0 +1,8 @@
+export default function DailyCheckin() {
+  return (
+    <div style={{ padding: 24 }}>
+      <h2>Daily Check-in works 🎉</h2>
+      <p>Your Resonifi page is now rendering successfully.</p>
+    </div>
+  );
+}
