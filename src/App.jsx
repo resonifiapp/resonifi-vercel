@@ -1,5 +1,6 @@
 import React from "react";
-import DailyCheckin from "./components/DailyCheckin.jsx";
+import DailyCheckin from '../DailyCheckin.jsx';
+
 
 export default function App() {
   return (
