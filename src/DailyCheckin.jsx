@@ -104,17 +104,20 @@ console.log("🟢 handleSave() clicked");
       const existing = JSON.parse(localStorage.getItem(key) || "[]");
       localStorage.setItem(key, JSON.stringify([...existing, payload]));
 
-      // 2) Optional network sync (non‑blocking failure)
-      try {
-        await fetch("/api/checkins", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-      } catch (netErr) {
-        // Swallow network errors silently to keep UX smooth; leave audit in console
-        console.debug("/api/checkins POST skipped or failed:", netErr?.message);
-      }
+      // 2) Optional network sync (non-blocking failure)
+console.log("POST /api/checkins starting…", payload);
+try {
+  const res = await fetch("/api/checkins", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  console.log("POST /api/checkins done", res.status, data);
+} catch (err) {
+  console.error("POST /api/checkins failed:", err);
+}
+
 
       // 3) App‑level callback
       onSubmit?.(payload);
