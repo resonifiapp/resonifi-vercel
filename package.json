@@ -1,6 +1,5 @@
 {
-  "name": "resonifi-vercel"
-",
+  "name": "resonifi-vercel",
   "private": true,
   "version": "9.9.9",
   "type": "module",
