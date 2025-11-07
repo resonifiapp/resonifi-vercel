@@ -286,13 +286,15 @@ export default function DailyCheckin({ onSubmit, defaultValues }) {
             >
               Reset
             </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="rounded-2xl bg-indigo-600 px-5 py-2.5 font-medium text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
-            >
-              {submitting ? "Saving…" : "Save Check‑in"}
-            </button>
+           <button
+  type="button"
+  onClick={handleSave}
+  disabled={submitting}
+  className="rounded-2xl bg-indigo-600 px-5 py-2.5 font-medium text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50"
+>
+  {submitting ? "Saving..." : "Save Check-in"}
+</button>
+
           </div>
         </div>
       </form>
