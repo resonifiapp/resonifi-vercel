@@ -25,6 +25,12 @@ export default function App() {
           <DailyCheckin />
         </main>
 
-        {/* Footer */}
-        <footer className="mt-6 text-xs text-slate-500 d
+           {/* Footer */}
+        <footer className="mt-6 text-xs text-slate-500 dark:text-slate-400">
+          © {new Date().getFullYear()} Resonifi Wellness Inc.
+        </footer>
+      </div>
+    </div>
+  );
+}
 
