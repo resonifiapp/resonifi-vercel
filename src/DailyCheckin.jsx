@@ -78,6 +78,7 @@ export default function DailyCheckin({ onSubmit, defaultValues }) {
   }
 
   async function handleSave(e) {
+console.log("🟢 handleSave() clicked");
     e?.preventDefault?.();
     setSubmitting(true);
     setStatus("");
