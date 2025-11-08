@@ -1,36 +1,42 @@
 import React from "react";
-import DailyCheckin from "./DailyCheckin";
+import { Routes, Route, Navigate, Link } from "react-router-dom";
+
+// Your original Daily Check-in lives at src/DailyCheckin.jsx (per your sidebar)
+import DailyCheckin from "./DailyCheckin.jsx";
+
+// If you later add real files under src/pages/, swap these placeholders:
+function Insights() { return <main className="p-6">Insights</main>; }
+function Support() { return <main className="p-6">Support</main>; }
+function Profile() { return <main className="p-6">Profile</main>; }
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900">
-      <div className="mx-auto max-w-5xl px-4 sm:px-6 md:px-8 py-8 md:py-10">
-        {/* Top bar */}
-        <header className="mb-6 md:mb-8">
-          <div className="flex items-center justify-between">
-            <h1 className="text-xl md:text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
-              Resonifi
-            </h1>
-            <div className="rounded-full bg-slate-100/80 dark:bg-slate-800/70 px-3 py-1 text-xs text-slate-600 dark:text-slate-300">
-              Daily Check-in
-            </div>
-          </div>
-          <p className="mt-2 text-slate-600 dark:text-slate-300">
-            Quick pulse across your four pillars. Private by default; sync is optional.
-          </p>
-        </header>
+    <div className="min-h-screen bg-[#0a0f1d] text-white">
+      {/* Top bar */}
+      <header className="px-6 py-4 flex items-center justify-between border-b border-white/10">
+        <div className="text-lg font-semibold">Resonifi™</div>
+        <nav className="flex items-center gap-6 text-white/80">
+          <Link to="/DailyCheckin">Check-In</Link>
+          <Link to="/Insights">Insights</Link>
+          <Link to="/Support">Support</Link>
+          <Link to="/Profile">Profile</Link>
+        </nav>
+      </header>
 
-        {/* Main card */}
-        <main className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900 shadow-sm">
-          <DailyCheckin />
-        </main>
+      {/* Routes */}
+      <Routes>
+        <Route path="/" element={<Navigate to="/DailyCheckin" replace />} />
+        <Route path="/DailyCheckin" element={<DailyCheckin />} />
+        <Route path="/Insights" element={<Insights />} />
+        <Route path="/Support" element={<Support />} />
+        <Route path="/Profile" element={<Profile />} />
+        <Route path="*" element={<Navigate to="/DailyCheckin" replace />} />
+      </Routes>
 
-           {/* Footer */}
-        <footer className="mt-6 text-xs text-slate-500 dark:text-slate-400">
-          © {new Date().getFullYear()} Resonifi Wellness Inc.
-        </footer>
-      </div>
+      {/* Footer (optional) */}
+      <footer className="mt-10 px-6 py-6 text-xs text-white/40">
+        © {new Date().getFullYear()} Resonifi Wellness Inc.
+      </footer>
     </div>
   );
 }
-
