@@ -1,56 +1,44 @@
-// src/pages/Insights.jsx
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Insights() {
+  const [snapshots, setSnapshots] = useState([]);
+  useEffect(() => {
+    try {
+      const arr = JSON.parse(localStorage.getItem("resonifi:snapshots") || "[]");
+      setSnapshots(Array.isArray(arr) ? arr : []);
+    } catch {}
+  }, []);
+
   return (
-    <div className="min-h-screen bg-[#0a0a10] text-white flex flex-col justify-between">
-      <header className="w-full py-6 border-b border-white/10 text-center">
-        <h1 className="text-2xl font-semibold tracking-wide">Insights</h1>
-      </header>
-
-      <main className="flex-grow max-w-3xl mx-auto px-6 py-12">
-        <section className="bg-white/5 border border-white/10 rounded-2xl p-6 shadow-md">
-          <h2 className="text-lg font-medium mb-2">Weekly Snapshot</h2>
-          <p className="text-white/70 text-sm mb-6">
-            Your personal patterns and reflections will appear here soon. As you
-            check in more, Resonifi will help you notice trends across your
-            emotional, physical, spiritual, and financial pillars.
-          </p>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
-              <p className="text-sm text-white/60">Sleep</p>
-              <p className="text-xl font-semibold">—</p>
+    <section className="mx-auto max-w-6xl px-4 py-10">
+      <Card className="bg-slate-900/60 border-slate-800">
+        <CardHeader>
+          <CardTitle className="text-base">Insights</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {snapshots.length === 0 ? (
+            <div className="text-sm text-slate-400">
+              No snapshots yet. Complete one on <a href="#/home" className="text-cyan-300">Home</a>.
             </div>
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
-              <p className="text-sm text-white/60">Hydration</p>
-              <p className="text-xl font-semibold">—</p>
-            </div>
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
-              <p className="text-sm text-white/60">Purpose</p>
-              <p className="text-xl font-semibold">—</p>
-            </div>
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
-              <p className="text-sm text-white/60">Resilience</p>
-              <p className="text-xl font-semibold">—</p>
-            </div>
-          </div>
-        </section>
-
-        <section className="mt-10 bg-white/5 border border-white/10 rounded-2xl p-6">
-          <h2 className="text-lg font-medium mb-2">Reflections</h2>
-          <p className="text-white/70 text-sm">
-            In future updates, you’ll see your journal insights and daily
-            resonance trends here — helping you reflect, transform, and thrive
-            through awareness.
-          </p>
-        </section>
-      </main>
-
-      <footer className="py-6 text-center text-white/40 text-sm border-t border-white/10">
-        Resonifi™ — Reflect. Transform. Thrive.
-      </footer>
-    </div>
+          ) : (
+            <ul className="divide-y divide-slate-800">
+              {snapshots.slice(0, 20).map((s, i) => (
+                <li key={i} className="py-3 flex items-center justify-between text-sm">
+                  <div>
+                    <span className="text-slate-200">Score: </span>
+                    <span className="font-medium">
+                      {typeof s.score === "number" ? s.score : Math.round((s.score01 ?? 0) * 100)}
+                    </span>
+                    {s.note ? <span className="text-slate-400"> — {s.note.slice(0, 60)}</span> : null}
+                  </div>
+                  <div className="text-xs text-slate-500">{new Date(s.ts).toLocaleString()}</div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+    </section>
   );
 }
-
