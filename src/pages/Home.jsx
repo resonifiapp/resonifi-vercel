@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { motion } from "framer-motion";
 import {
   Sparkles,
   ShieldCheck,
@@ -17,7 +16,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 
-// Resonance pillars
 const PILLARS = [
   { key: "emotional", label: "Emotional", freq: 396 },
   { key: "physical", label: "Physical", freq: 417 },
@@ -25,14 +23,12 @@ const PILLARS = [
   { key: "spiritual", label: "Spiritual", freq: 852 },
 ];
 
-// Utility + formula
 const clamp01 = (n) => Math.max(0, Math.min(1, n));
 const computeWellnessIndex = (pillars, gratitude, kindness) => {
   const avg = pillars.reduce((a, b) => a + b, 0) / pillars.length;
   return clamp01(avg * 0.94 + gratitude * 0.03 + kindness * 0.03);
 };
 
-// Optional gentle tone generator
 function useTone() {
   const [ctx, setCtx] = useState(null);
   const [osc, setOsc] = useState(null);
@@ -51,10 +47,7 @@ function useTone() {
     setOsc(o);
   };
   const stop = () => {
-    try {
-      osc?.stop();
-      ctx?.close();
-    } catch {}
+    try { osc?.stop(); ctx?.close(); } catch {}
     setOsc(null);
     setCtx(null);
   };
@@ -70,23 +63,18 @@ export default function Home() {
   const STORAGE_KEY = "resonifi:home:v2";
   const SNAPSHOT_KEY = "resonifi:snapshots";
 
-  // Load saved data on mount
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return;
       const v = JSON.parse(raw);
-      if (Array.isArray(v.pillars) && v.pillars.length === 4)
-        setPillars(v.pillars.map(clamp01));
-      if (typeof v.gratitude === "number")
-        setGratitude(clamp01(v.gratitude));
-      if (typeof v.kindness === "number")
-        setKindness(clamp01(v.kindness));
+      if (Array.isArray(v.pillars) && v.pillars.length === 4) setPillars(v.pillars.map(clamp01));
+      if (typeof v.gratitude === "number") setGratitude(clamp01(v.gratitude));
+      if (typeof v.kindness === "number") setKindness(clamp01(v.kindness));
       if (typeof v.note === "string") setNote(v.note);
     } catch {}
   }, []);
 
-  // Save snapshot locally
   const saveLocal = () => {
     try {
       localStorage.setItem(
@@ -96,26 +84,16 @@ export default function Home() {
     } catch {}
   };
 
-  // Complete reflection
   const completeReflection = () => {
     try {
       const arr = JSON.parse(localStorage.getItem(SNAPSHOT_KEY) || "[]");
       const score = Math.round(
         computeWellnessIndex(pillars, gratitude * 0.6, kindness * 0.6) * 100
       );
-      arr.unshift({
-        ts: Date.now(),
-        pillars,
-        gratitude,
-        kindness,
-        note: note?.trim() || null,
-        score,
-      });
+      arr.unshift({ ts: Date.now(), pillars, gratitude, kindness, note: note?.trim() || null, score });
       localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(arr.slice(0, 100)));
       if (typeof window !== "undefined" && window?.plausible) {
-        try {
-          window.plausible("Snapshot Completed");
-        } catch {}
+        try { window.plausible("Snapshot Completed"); } catch {}
       }
     } catch {}
     setNote("");
@@ -124,18 +102,29 @@ export default function Home() {
   const setPillar = (i, v) =>
     setPillars((prev) => prev.map((p, idx) => (idx === i ? clamp01(v) : p)));
 
-  // Calculate score + glow
+  // Wellness Score (0–100) + base scale from score
   const score = Math.round(
     computeWellnessIndex(pillars, gratitude * 0.6, kindness * 0.6) * 100
   );
-  const glowScale = 0.8 + (score / 100) * 0.35;
+  const baseScale = 0.8 + (score / 100) * 0.35; // 0.8..1.15
 
   const core = useTone();
   const pillarTones = useTone();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100">
-      {/* Header */}
+      {/* Local CSS breathing animation (no libraries) */}
+      <style>{`
+        @keyframes resonate-breathe {
+          0%   { transform: scale(1); }
+          50%  { transform: scale(1.04); }
+          100% { transform: scale(1); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .breathe { animation: none !important; }
+        }
+      `}</style>
+
       <header className="sticky top-0 z-20 backdrop-blur supports-[backdrop-filter]:bg-slate-900/60">
         <div className="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -155,7 +144,6 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Core Resonance Section */}
       <section className="mx-auto max-w-6xl px-4 pt-10 pb-2 grid grid-cols-1 md:grid-cols-5 gap-6">
         <Card className="col-span-1 md:col-span-3 bg-slate-900/60 border-slate-800">
           <CardHeader className="flex-row items-center justify-between">
@@ -167,32 +155,40 @@ export default function Home() {
 
           <CardContent>
             <div className="relative flex items-center justify-center py-10">
-              <motion.div
+              {/* Outer container scales to score; inner "breathe" div adds smooth animation */}
+              <div
                 onMouseEnter={() => core.start(528)}
                 onMouseLeave={core.stop}
-                animate={{ scale: glowScale }}
-                transition={{ type: "spring", stiffness: 120, damping: 18 }}
+                aria-label="Resonance dot"
                 className="relative h-44 w-44 rounded-full"
+                style={{
+                  transform: `scale(${baseScale})`,
+                  transition: "transform 400ms cubic-bezier(0.22, 1, 0.36, 1)",
+                }}
               >
-                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-200/25 via-teal-200/20 to-violet-200/25 blur-2xl" />
-                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-400 via-teal-300 to-violet-400 opacity-30 blur" />
-                <div className="absolute inset-3 rounded-full bg-slate-950 shadow-inner" />
-                <div className="absolute inset-8 rounded-full bg-gradient-to-br from-cyan-300 via-teal-300 to-violet-400 shadow-xl" />
-                {/* Score inside the ball */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-4xl font-semibold text-slate-100 drop-shadow-md">
-                    {score}
-                  </span>
+                <div className="breathe absolute inset-0 rounded-full" style={{ animation: "resonate-breathe 3.2s ease-in-out infinite" }}>
+                  {/* Outer glows */}
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-200/25 via-teal-200/20 to-violet-200/25 blur-2xl" />
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-400 via-teal-300 to-violet-400 opacity-30 blur" />
+                  {/* Inner rings */}
+                  <div className="absolute inset-3 rounded-full bg-slate-950 shadow-inner" />
+                  <div className="absolute inset-8 rounded-full bg-gradient-to-br from-cyan-300 via-teal-300 to-violet-400 shadow-xl" />
+                  {/* Score label */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-4xl font-semibold text-slate-100 drop-shadow-md">
+                      {score}
+                    </span>
+                  </div>
                 </div>
-              </motion.div>
+              </div>
             </div>
+
             <p className="text-center text-sm text-slate-300">
               A calm snapshot of where you are. Adjust pillars below or add a private note.
             </p>
           </CardContent>
         </Card>
 
-        {/* Snapshot + Solfeggio */}
         <div className="col-span-1 md:col-span-2 grid gap-6">
           <Card className="bg-slate-900/60 border-slate-800">
             <CardHeader>
@@ -238,7 +234,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Pillars + Reflection */}
       <section className="mx-auto max-w-6xl px-4 pb-14 grid grid-cols-1 md:grid-cols-5 gap-6">
         <Card className="col-span-1 md:col-span-3 bg-slate-900/60 border-slate-800">
           <CardHeader>
@@ -254,19 +249,14 @@ export default function Home() {
                       style={{ height: `${v * 100}%` }}
                     />
                   </div>
-                  <div className="mt-3 text-xs text-slate-300">
-                    {PILLARS[i].label}
-                  </div>
+                  <div className="mt-3 text-xs text-slate-300">{PILLARS[i].label}</div>
                 </div>
               ))}
             </div>
-
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
               {pillars.map((v, i) => (
                 <div key={i} className="space-y-2">
-                  <div className="text-xs text-slate-400">
-                    Adjust {PILLARS[i].label}
-                  </div>
+                  <div className="text-xs text-slate-400">Adjust {PILLARS[i].label}</div>
                   <Slider
                     defaultValue={[v]}
                     max={1}
@@ -284,7 +274,7 @@ export default function Home() {
             <CardTitle className="text-base">Gently rebalance</CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-4">
               <div className="space-y-2">
                 <label className="text-sm text-slate-200 flex items-center gap-2">
                   <Heart className="h-4 w-4" /> Gratitude
@@ -295,6 +285,7 @@ export default function Home() {
                   step={0.01}
                   onValueChange={(a) => setGratitude(clamp01(a[0]))}
                 />
+                <p className="text-xs text-slate-400">A small moment you appreciated today.</p>
               </div>
               <div className="space-y-2">
                 <label className="text-sm text-slate-200 flex items-center gap-2">
@@ -306,6 +297,7 @@ export default function Home() {
                   step={0.01}
                   onValueChange={(a) => setKindness(clamp01(a[0]))}
                 />
+                <p className="text-xs text-slate-400">Something you did (or received) that brought ease.</p>
               </div>
             </div>
 
@@ -318,9 +310,7 @@ export default function Home() {
                 className="min-h-[90px]"
               />
               <div className="flex items-center justify-end gap-2">
-                <Button variant="outline" onClick={saveLocal}>
-                  Save locally
-                </Button>
+                <Button variant="outline" onClick={saveLocal}>Save locally</Button>
                 <Button className="gap-2" onClick={completeReflection}>
                   Complete <ArrowRight className="h-4 w-4" />
                 </Button>
@@ -330,7 +320,6 @@ export default function Home() {
         </Card>
       </section>
 
-      {/* Footer */}
       <footer className="mx-auto max-w-6xl px-4 pb-10">
         <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 text-xs text-slate-400 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
           <div className="flex items-center gap-2">
