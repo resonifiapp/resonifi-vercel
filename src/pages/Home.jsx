@@ -1,4 +1,4 @@
-// src/pages/Home.jsx
+
 import React, { useMemo, useState } from "react";
 
 /* tiny helpers */
