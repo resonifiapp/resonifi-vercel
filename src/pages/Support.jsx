@@ -1,538 +1,129 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import React, { useState } from "react";
 import {
-  HeartHandshake,
-  Phone,
+  ShieldCheck,
+  LifeBuoy,
+  Mail,
   MessageCircle,
-  ExternalLink,
-  Clock,
-  Users,
-  UserPlus,
+  ArrowRight,
 } from "lucide-react";
-import { motion } from "framer-motion";
-import SupportResources from "../components/SupportResources";
-import SupportRoom from "../components/SupportRoom";
-import BottomNav from "../components/BottomNav";
-import Meta from "../components/Meta";
-import { 
-  db, 
-  auth, 
-  ensureAnonAuth,
-  collection, 
-  addDoc, 
-  query, 
-  orderBy, 
-  limit, 
-  onSnapshot,
-  serverTimestamp 
-} from "../components/lib/firebase";
-import { Social } from "../components/lib/wellnessIndex";
-import { markCommunitySeenNow, useCommunityUnread } from "@/components/lib/unreadCommunity";
-import { markDMsSeenNow, useDMUnread, incrementDMUnreadCount } from "@/components/lib/unreadDMs";
-
-const QUICK_EMOJIS = ["💜", "🙏", "🌟", "🔥", "💪", "🎉", "😊"];
-
-// Generate a random friend code
-function generateCode() {
-  return Math.random().toString(36).slice(2, 8).toUpperCase();
-}
-
-// Friends Panel - Shows your friend code
-function FriendsPanel() {
-  const [myCode, setMyCode] = useState("");
-
-  useEffect(() => {
-    const loadOrCreateCode = async () => {
-      await ensureAnonAuth();
-      const user = auth.currentUser;
-      if (!user) return;
-
-      const storedCode = localStorage.getItem(`friendCode_${user.uid}`);
-      if (storedCode) {
-        setMyCode(storedCode);
-      } else {
-        const newCode = generateCode();
-        localStorage.setItem(`friendCode_${user.uid}`, newCode);
-        setMyCode(newCode);
-      }
-    };
-
-    loadOrCreateCode();
-  }, []);
-
-  const inviteLink = typeof window !== "undefined" && myCode 
-    ? `${window.location.origin}/add?code=${myCode}` 
-    : "";
-
-  return (
-    <Card className="bg-[#1A2035]/80 border-slate-700/50">
-      <CardContent className="p-4 space-y-2">
-        <div className="text-sm text-gray-400">Your Friend Code</div>
-        <div className="text-2xl font-bold text-white tracking-wider">
-          {myCode || "Loading..."}
-        </div>
-        {inviteLink && (
-          <div className="text-xs text-gray-500 break-all">
-            Share: {inviteLink}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-// Add Friend By Code
-function AddFriendByCode() {
-  const [code, setCode] = useState("");
-  const [message, setMessage] = useState("");
-
-  const addByCode = async () => {
-    const friendCode = code.trim().toUpperCase();
-    if (!friendCode) {
-      setMessage("Please enter a code");
-      return;
-    }
-
-    await ensureAnonAuth();
-    const me = auth.currentUser;
-    if (!me) return;
-
-    const myCode = localStorage.getItem(`friendCode_${me.uid}`);
-    if (friendCode === myCode) {
-      setMessage("That's your own code!");
-      return;
-    }
-
-    const myFriends = JSON.parse(localStorage.getItem(`friends_${me.uid}`) || '[]');
-    if (!myFriends.includes(friendCode)) {
-      myFriends.push(friendCode);
-      localStorage.setItem(`friends_${me.uid}`, JSON.stringify(myFriends));
-      setMessage("Friend added! ✓");
-      setCode("");
-      
-      if (typeof window !== "undefined" && window.plausible) {
-        window.plausible("Friend Added");
-      }
-    } else {
-      setMessage("Already friends!");
-    }
-
-    setTimeout(() => setMessage(""), 3000);
-  };
-
-  return (
-    <Card className="bg-[#1A2035]/80 border-slate-700/50">
-      <CardContent className="p-4 space-y-3">
-        <div className="flex gap-2">
-          <Input
-            placeholder="Enter friend's code"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            className="bg-[#0F172A] border-slate-700 text-white"
-          />
-          <Button 
-            onClick={addByCode}
-            className="bg-[#2DD4BF] hover:bg-[#0D9488]"
-          >
-            <UserPlus className="w-4 h-4 mr-2" />
-            Add
-          </Button>
-        </div>
-        {message && (
-          <div className="text-sm text-[#2DD4BF]">{message}</div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-// Friend List
-function FriendList({ onOpenChat }) {
-  const [friends, setFriends] = useState([]);
-
-  useEffect(() => {
-    const loadFriends = async () => {
-      await ensureAnonAuth();
-      const me = auth.currentUser;
-      if (!me) return;
-
-      const friendCodes = JSON.parse(localStorage.getItem(`friends_${me.uid}`) || '[]');
-      setFriends(friendCodes);
-    };
-
-    loadFriends();
-  }, []);
-
-  if (!friends.length) {
-    return (
-      <Card className="bg-[#1A2035]/80 border-slate-700/50">
-        <CardContent className="p-4 text-sm text-gray-400 text-center">
-          No friends yet. Add a friend using their code above!
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <div className="space-y-2">
-      {friends.map((code) => {
-        const conversationId = [auth.currentUser?.uid, code].sort().join("_");
-        return (
-          <Card key={code} className="bg-[#1A2035]/80 border-slate-700/50">
-            <CardContent className="p-3 flex items-center justify-between">
-              <div className="text-sm text-white">Friend: {code}</div>
-              <Button
-                onClick={() => onOpenChat(conversationId)}
-                size="sm"
-                className="bg-[#2DD4BF] hover:bg-[#0D9488]"
-              >
-                Open Chat
-              </Button>
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
-  );
-}
-
-// Direct Message Component
-function DirectMessage({ conversationId }) {
-  const [messages, setMessages] = useState([]);
-  const [text, setText] = useState("");
-  const boxRef = useRef(null);
-  const me = auth.currentUser;
-  const prevMessageIdsRef = useRef(new Set());
-
-  useEffect(() => {
-    if (conversationId) {
-      markDMsSeenNow();
-    }
-  }, [conversationId]);
-
-  useEffect(() => {
-    if (!conversationId) return;
-
-    const messagesRef = collection(db, "conversations", conversationId, "messages");
-    const q = query(messagesRef, orderBy("createdAt", "asc"));
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate?.() || new Date(),
-      }));
-      
-      const myUid = me?.uid;
-      const prevMessageIds = prevMessageIdsRef.current;
-
-      if (myUid && prevMessageIds.size > 0) {
-        const newPeerMessages = msgs.filter(msg =>
-          msg.senderId !== myUid &&
-          !prevMessageIds.has(msg.id)
-        );
-
-        newPeerMessages.forEach(() => {
-          incrementDMUnreadCount();
-        });
-      }
-
-      prevMessageIdsRef.current = new Set(msgs.map(m => m.id));
-      
-      setMessages(msgs);
-      
-      setTimeout(() => {
-        boxRef.current?.scrollTo({ top: boxRef.current.scrollHeight });
-      }, 50);
-    });
-
-    return unsubscribe;
-  }, [conversationId, me?.uid]);
-
-  const sendMessage = async () => {
-    const trimmedText = text.trim();
-    if (!trimmedText || !me) return;
-
-    const peerUid = conversationId.split("_").find(x => x !== me.uid) || null;
-    const messagesRef = collection(db, "conversations", conversationId, "messages");
-    
-    await addDoc(messagesRef, {
-      senderId: me.uid,
-      text: trimmedText.slice(0, 1000),
-      emoji: null,
-      createdAt: serverTimestamp(),
-    });
-
-    setText("");
-    
-    Social.recordSent(peerUid, { type: "dm" });
-    markDMsSeenNow();
-    
-    if (typeof window !== "undefined" && window.plausible) {
-      window.plausible("DM Sent");
-    }
-  };
-
-  const sendEmoji = async (emoji) => {
-    if (!me) return;
-
-    const peerUid = conversationId.split("_").find(x => x !== me.uid) || null;
-    const messagesRef = collection(db, "conversations", conversationId, "messages");
-    
-    await addDoc(messagesRef, {
-      senderId: me.uid,
-      text: null,
-      emoji,
-      createdAt: serverTimestamp(),
-    });
-    
-    Social.recordSent(peerUid, { type: "dm" });
-    markDMsSeenNow();
-    
-    if (typeof window !== "undefined" && window.plausible) {
-      window.plausible("DM Emoji Sent", { props: { emoji } });
-    }
-  };
-
-  if (!conversationId) return null;
-
-  return (
-    <Card className="bg-[#1A2035]/80 border-slate-700/50">
-      <CardContent className="p-4 space-y-3">
-        <div className="flex gap-2 flex-wrap">
-          {QUICK_EMOJIS.map((emoji) => (
-            <Button
-              key={emoji}
-              variant="secondary"
-              size="sm"
-              onClick={() => sendEmoji(emoji)}
-              className="text-xl"
-            >
-              {emoji}
-            </Button>
-          ))}
-        </div>
-
-        <div
-          ref={boxRef}
-          className="h-64 overflow-y-auto space-y-2 bg-[#0F172A]/50 rounded-lg p-3"
-        >
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`max-w-[80%] ${
-                msg.senderId === me?.uid ? "ml-auto" : ""
-              }`}
-            >
-              {msg.emoji ? (
-                <div className="text-3xl text-center">{msg.emoji}</div>
-              ) : (
-                <div
-                  className={`rounded-2xl px-3 py-2 ${
-                    msg.senderId === me?.uid
-                      ? "bg-[#2DD4BF] text-white"
-                      : "bg-slate-700 text-white"
-                  }`}
-                >
-                  {msg.text}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        <div className="flex gap-2">
-          <Input
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-            placeholder="Message your friend..."
-            className="bg-[#0F172A] border-slate-700 text-white"
-          />
-          <Button
-            onClick={sendMessage}
-            disabled={!text.trim()}
-            className="bg-[#2DD4BF] hover:bg-[#0D9488]"
-          >
-            Send
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function Support() {
-  const [tab, setTab] = useState("community");
-  const [conversationId, setConversationId] = useState(null);
-  const [rippleCount, setRippleCount] = useState(0);
+  const [email, setEmail] = useState("");
+  const [topic, setTopic] = useState("");
+  const [message, setMessage] = useState("");
 
-  const { count: commCount } = useCommunityUnread();
-  const { count: dmCount } = useDMUnread();
-
-  useEffect(() => {
-    ensureAnonAuth();
-  }, []);
-
-  useEffect(() => {
-    if (tab === "community") {
-      markCommunitySeenNow();
-      if (typeof window !== "undefined" && window.plausible) {
-        window.plausible("Community Seen (Unread Cleared)");
-      }
-    }
-  }, [tab]);
-
-  useEffect(() => {
-    if (tab === "friends") {
-      markDMsSeenNow();
-      if (typeof window !== "undefined" && window.plausible) {
-        window.plausible("DMs Seen (Unread Cleared)");
-      }
-    }
-  }, [tab]);
+  const submit = (e) => {
+    e.preventDefault();
+    // local-only demo submit; swap with your API later
+    try {
+      const key = "resonifi:support:messages";
+      const arr = JSON.parse(localStorage.getItem(key) || "[]");
+      arr.unshift({ ts: Date.now(), email, topic, message });
+      localStorage.setItem(key, JSON.stringify(arr.slice(0, 200)));
+      setTopic("");
+      setMessage("");
+    } catch {}
+  };
 
   return (
-    <>
-      <Meta
-        title="Resonifi™ — Support"
-        description="Connect with the community and get help"
-        url="https://resonifiapp.com/support"
-      />
-      
-      <div className="page-has-bottom-nav min-h-screen p-6 bg-[#0F172A] pb-24 md:pb-6">
-        <div className="max-w-4xl mx-auto space-y-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="text-center"
-          >
-            <h1 className="text-3xl font-bold text-white mb-2">Support</h1>
-            <p className="text-gray-400">Connect with the community and get help</p>
-          </motion.div>
-
-          <div className="flex gap-2 justify-center">
-            <div className="relative">
-              <Button
-                variant={tab === "community" ? "default" : "outline"}
-                onClick={() => { 
-                  setTab("community"); 
-                  if (typeof window !== "undefined" && window.plausible) {
-                    window.plausible("Tab Community"); 
-                  }
-                }}
-                className={tab === "community" ? "bg-[#2DD4BF] hover:bg-[#0D9488]" : ""}
-              >
-                <Users className="w-4 h-4 mr-2" />
-                Community
-              </Button>
-              {commCount > 0 && tab !== "community" && (
-                <span
-                  className="absolute -top-1 -right-1 inline-block w-2.5 h-2.5 rounded-full bg-blue-600"
-                  aria-label={`${commCount} new community messages`}
-                  title="New in Community"
-                />
-              )}
-            </div>
-            
-            <div className="relative">
-              <Button
-                variant={tab === "friends" ? "default" : "outline"}
-                onClick={() => { 
-                  setTab("friends"); 
-                  if (typeof window !== "undefined" && window.plausible) {
-                    window.plausible("Tab Friends"); 
-                  }
-                }}
-                className={tab === "friends" ? "bg-[#2DD4BF] hover:bg-[#0D9488]" : ""}
-              >
-                <MessageCircle className="w-4 h-4 mr-2" />
-                Friends
-              </Button>
-              {dmCount > 0 && tab !== "friends" && (
-                <span
-                  className="absolute -top-1 -right-1 inline-block w-2.5 h-2.5 rounded-full bg-purple-600"
-                  aria-label={`${dmCount} new direct messages`}
-                  title="New in DMs"
-                />
-              )}
-            </div>
-            
-            <Button
-              variant={tab === "resources" ? "default" : "outline"}
-              onClick={() => { 
-                setTab("resources"); 
-                if (typeof window !== "undefined" && window.plausible) {
-                  window.plausible("Tab Resources"); 
-                }
-              }}
-              className={tab === "resources" ? "bg-[#2DD4BF] hover:bg-[#0D9488]" : ""}
-            >
-              <Phone className="w-4 h-4 mr-2" />
-              Resources
-            </Button>
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100">
+      {/* Simple page header (no animation deps) */}
+      <header className="sticky top-0 z-20 backdrop-blur supports-[backdrop-filter]:bg-slate-900/60">
+        <div className="mx-auto max-w-5xl px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-cyan-300 via-teal-300 to-violet-400 shadow-lg shadow-cyan-500/20" />
+            <span className="text-lg font-semibold tracking-tight">Resonifi</span>
           </div>
-
-          {tab === "community" && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="space-y-4"
-            >
-              <Card className="bg-[#1A2035]/80 border-slate-700/50">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-white">
-                    <MessageCircle className="w-5 h-5 text-purple-400" />
-                    Community Support Circle
-                  </CardTitle>
-                  <p className="text-sm text-gray-400">
-                    A shared space for encouragement and kind words
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <SupportRoom onRipple={(n) => setRippleCount((prev) => prev + n)} />
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-
-          {tab === "friends" && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="space-y-4"
-            >
-              <FriendsPanel />
-              <AddFriendByCode />
-              <FriendList onOpenChat={setConversationId} />
-              {conversationId && (
-                <>
-                  <h3 className="text-lg font-semibold text-white">Private Chat</h3>
-                  <DirectMessage conversationId={conversationId} />
-                </>
-              )}
-            </motion.div>
-          )}
-
-          {tab === "resources" && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="space-y-4"
-            >
-              <SupportResources />
-            </motion.div>
-          )}
+          <div className="flex items-center gap-2 text-xs text-slate-400">
+            <ShieldCheck className="h-4 w-4" />
+            Private by default
+          </div>
         </div>
+      </header>
 
-        <BottomNav />
-      </div>
-    </>
+      <main className="mx-auto max-w-5xl px-4 py-10 grid gap-6 md:grid-cols-5">
+        <Card className="md:col-span-3 bg-slate-900/60 border-slate-800">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <LifeBuoy className="h-5 w-5" />
+              Contact Support
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={submit} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm text-slate-300">Your email</label>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm text-slate-300">Topic</label>
+                <Input
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  placeholder="Billing, account, feedback…"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm text-slate-300">Message</label>
+                <Textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="How can we help?"
+                  className="min-h-[120px]"
+                  required
+                />
+              </div>
+
+              <div className="flex justify-end">
+                <Button type="submit" className="gap-2">
+                  Send <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        <div className="md:col-span-2 grid gap-6">
+          <Card className="bg-slate-900/60 border-slate-800">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Mail className="h-5 w-5" />
+                Direct email
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-slate-300">
+              Prefer email? Reach us at <span className="text-slate-100">support@resonifi.app</span>.
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-900/60 border-slate-800">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <MessageCircle className="h-5 w-5" />
+                Quick tips
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-slate-300 space-y-2">
+              <p>• Try without signup keeps everything local to your device.</p>
+              <p>• Pillar sliders adjust your current snapshot; nothing is uploaded.</p>
+              <p>• You can clear saved snapshots anytime in your browser storage.</p>
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+    </div>
   );
 }
