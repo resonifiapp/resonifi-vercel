@@ -1,154 +1,123 @@
+// src/pages/Home.jsx
 import React from "react";
 import { Link } from "react-router-dom";
 
-/** Breathing orb using Schumann-inspired timings (7.83s, 3.915s, 2.61s) */
-function GlowingBall({ score = 0 }) {
+export default function Home() {
+  // Placeholder score for now
+  const todaysScore = 0;
+
   return (
-    <div className="relative flex flex-col items-center justify-center mt-2 mb-4">
-      {/* Local keyframes so we don't touch tailwind.config.js */}
+    <div className="min-h-screen bg-[#0a0a10] text-white flex flex-col justify-between">
+      {/* Local CSS for the breathing glow (7.83s ~ Schumann-like cadence) */}
       <style>{`
         @keyframes breathe {
-          0%   { transform: scale(0.92); opacity: .35; filter: blur(34px); }
-          50%  { transform: scale(1.06); opacity: .60; filter: blur(42px); }
-          100% { transform: scale(0.92); opacity: .35; filter: blur(34px); }
+          0%   { box-shadow: 0 0 0 0 rgba(99,102,241,.35); transform: scale(1); }
+          50%  { box-shadow: 0 0 60px 16px rgba(99,102,241,.55); transform: scale(1.02); }
+          100% { box-shadow: 0 0 0 0 rgba(99,102,241,.35); transform: scale(1); }
         }
-        @keyframes breathe-mid {
-          0%   { transform: scale(0.96); opacity: .25; filter: blur(28px); }
-          50%  { transform: scale(1.05); opacity: .45; filter: blur(34px); }
-          100% { transform: scale(0.96); opacity: .25; filter: blur(28px); }
-        }
-        @keyframes breathe-fast {
-          0%   { transform: scale(0.98); opacity: .20; filter: blur(22px); }
-          50%  { transform: scale(1.03); opacity: .35; filter: blur(26px); }
-          100% { transform: scale(0.98); opacity: .20; filter: blur(22px); }
+        .orb {
+          animation: breathe 7.83s ease-in-out infinite;
         }
       `}</style>
 
-      {/* Auras */}
-      <div
-        aria-hidden
-        className="absolute rounded-full bg-indigo-500/40"
-        style={{ width: "11rem", height: "11rem", animation: "breathe 7.83s ease-in-out infinite" }}
-      />
-      <div
-        aria-hidden
-        className="absolute rounded-full bg-blue-400/30"
-        style={{ width: "9.5rem", height: "9.5rem", animation: "breathe-mid 3.915s ease-in-out infinite" }}
-      />
-      <div
-        aria-hidden
-        className="absolute rounded-full bg-violet-500/25"
-        style={{ width: "8.25rem", height: "8.25rem", animation: "breathe-fast 2.61s ease-in-out infinite" }}
-      />
+      {/* Top bar (simple) */}
+      <header className="w-full py-6 border-b border-white/10">
+        <div className="max-w-5xl mx-auto px-6 flex items-center justify-between">
+          <div className="text-sm tracking-wide text-white/60">Resonifi™</div>
+          <nav className="flex gap-6 text-sm">
+            <Link to="/DailyCheckin" className="text-white/80 hover:text-white">Check-In</Link>
+            <Link to="/Insights" className="text-white/80 hover:text-white">Insights</Link>
+            <Link to="/Support" className="text-white/80 hover:text-white">Support</Link>
+            <Link to="/Profile" className="text-white/80 hover:text-white">Profile</Link>
+          </nav>
+        </div>
+      </header>
 
-      {/* Core sphere */}
-      <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-indigo-400 via-blue-500 to-violet-500 shadow-[0_0_46px_rgba(99,102,241,0.85)]" />
+      {/* Main */}
+      <main className="flex-grow max-w-5xl mx-auto px-6 py-10">
+        <h1 className="text-2xl font-semibold mb-2">Welcome back</h1>
+        <p className="text-white/60 mb-8">Ready to check in for today?</p>
 
-      {/* Score */}
-      <div className="mt-4 text-center">
-        <div className="text-white/60 text-xs">Today’s Wellness Index</div>
-        <div className="text-3xl font-semibold text-white">{score}</div>
-      </div>
+        {/* Orb + Score */}
+        <section className="mx-auto max-w-md">
+          <div
+            aria-hidden
+            className="orb relative mx-auto h-56 w-56 rounded-full"
+            style={{
+              background:
+                "radial-gradient(45% 45% at 50% 50%, rgba(167, 139, 250, 0.85) 0%, rgba(99, 102, 241, 0.75) 55%, rgba(59, 130, 246, 0.55) 100%)",
+              filter: "saturate(120%)",
+            }}
+          />
+          <div className="mt-6 text-center">
+            <div className="text-white/60 text-sm mb-1">Today’s Wellness Index</div>
+            <div className="text-4xl font-semibold">{todaysScore}</div>
+          </div>
+
+          {/* Primary action */}
+          <div className="mt-6 flex justify-center">
+            <Link
+              to="/DailyCheckin"
+              className="inline-flex items-center justify-center rounded-xl bg-indigo-500/90 hover:bg-indigo-500 px-5 py-3 text-sm font-medium shadow-md shadow-indigo-900/30 transition"
+            >
+              Update Check-In
+            </Link>
+          </div>
+
+          {/* Quick actions */}
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Link
+              to="/DailyCheckin"
+              className="rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-center hover:bg-white/7 transition"
+            >
+              Check-In
+            </Link>
+            <Link
+              to="/Insights"
+              className="rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-center hover:bg-white/7 transition"
+            >
+              Insights
+            </Link>
+            <Link
+              to="/Profile"
+              className="rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-center hover:bg-white/7 transition"
+            >
+              Journal
+            </Link>
+          </div>
+        </section>
+
+        {/* Weekly snapshot placeholder (matches older design vibe) */}
+        <section className="mt-10 max-w-xl mx-auto bg-white/5 border border-white/10 rounded-2xl p-6">
+          <h2 className="text-lg font-medium mb-4">Weekly snapshot</h2>
+          <div className="space-y-3 text-sm">
+            <Bar label="Sleep" />
+            <Bar label="Hydration" />
+            <Bar label="Purpose" />
+            <Bar label="Resilience" />
+          </div>
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer className="py-6 text-center text-white/40 text-sm border-t border-white/10">
+        Resonifi™ — Reflect. Transform. Thrive.
+      </footer>
     </div>
   );
 }
 
-export default function Home() {
-  const firstName = "jpcromnien!";
-  const todayScore = 0;
-  const weekly = [
-    { label: "Sleep", value: 100 },
-    { label: "Hydration", value: 100 },
-    { label: "Purpose", value: 100 },
-    { label: "Resilience", value: 100 },
-  ];
-
+/* Small helper component for the snapshot bars */
+function Bar({ label }) {
   return (
-    <main className="max-w-3xl mx-auto px-4 md:px-0 py-10 text-white">
-      {/* Brand */}
-      <div className="text-center text-white/70 text-sm mb-3">Resonifi™</div>
-
-      {/* Welcome */}
-      <section className="mb-6">
-        <h1 className="text-xl font-semibold">Welcome back, {firstName}</h1>
-        <p className="text-white/60">Ready to check in for today?</p>
-        <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-white/5 border border-white/10 px-3 py-1 text-xs text-white/80">
-          <span className="inline-block h-2 w-2 rounded-full bg-amber-400" />
-          1-day streak
-        </div>
-      </section>
-
-      {/* Orb card */}
-      <section className="bg-white/5 border border-white/10 rounded-2xl p-6 mb-6">
-        <div className="flex justify-center">
-          <GlowingBall score={todayScore} />
-        </div>
-
-        <div className="flex justify-center">
-          <Link
-            to="/DailyCheckin"
-            className="w-full sm:w-auto text-center rounded-xl px-5 py-3 bg-indigo-600 hover:bg-indigo-500 transition font-medium"
-          >
-            Update Check-In
-          </Link>
-        </div>
-
-        {/* Quick actions */}
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Link to="/DailyCheckin" className="rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-center">
-            <div className="text-sm">Check-In</div>
-          </Link>
-          <Link to="/Insights" className="rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-center">
-            <div className="text-sm">Insights</div>
-          </Link>
-          <Link to="/Profile" className="rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-center">
-            <div className="text-sm">Journal</div>
-          </Link>
-        </div>
-      </section>
-
-      {/* Weekly snapshot */}
-      <section className="mb-6">
-        <h2 className="text-sm font-medium mb-3 text-white/90">Weekly snapshot</h2>
-        <div className="grid gap-3">
-          {weekly.map((item) => (
-            <div key={item.label} className="bg-white/5 border border-white/10 rounded-2xl p-4">
-              <div className="flex items-center justify-between mb-2 text-sm">
-                <span className="text-white/70">{item.label}</span>
-                <span className="text-white/60">{item.value}</span>
-              </div>
-              <div className="h-2 rounded-full bg-white/10 overflow-hidden">
-                <div className="h-full bg-indigo-500" style={{ width: `${item.value}%` }} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Weekly summary */}
-      <section className="mb-6">
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between">
-          <div>
-            <div className="text-white/90 text-sm font-medium">New: Weekly Summary</div>
-            <div className="text-white/60 text-sm">A clearer recap of how your week is trending.</div>
-          </div>
-          <Link to="/Insights" className="rounded-xl px-4 py-2 bg-white/10 hover:bg-white/15 text-sm">
-            View
-          </Link>
-        </div>
-      </section>
-
-      {/* Wins */}
-      <section className="mb-10">
-        <h2 className="text-sm font-medium mb-3 text-white/90">Wins</h2>
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-          <div className="flex flex-wrap gap-2">
-            <span className="text-xs rounded-full bg-white/10 px-3 py-1">🏅 3 badges</span>
-            <span className="text-xs rounded-full bg-white/10 px-3 py-1">✅ 7 check-ins this month</span>
-            <span className="text-xs rounded-full bg-white/10 px-3 py-1">📈 Trend steady</span>
-          </div>
-        </div>
-      </section>
-    </main>
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-white/70">{label}</span>
+        <span className="text-white/50">—</span>
+      </div>
+      <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
+        <div className="h-full w-0 bg-indigo-400/70" />
+      </div>
+    </div>
   );
 }
