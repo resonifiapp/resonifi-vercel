@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-// tiny class joiner (no deps)
+// simple class joiner
 const cn = (...a) => a.filter(Boolean).join(" ");
 
 const PROFILE_KEY = "resonifi:profile";
@@ -26,7 +26,6 @@ export default function Profile() {
   const [newsletter, setNewsletter] = useState(false);
   const [snapshots, setSnapshots] = useState([]);
 
-  // Load profile + snapshots
   useEffect(() => {
     try {
       const raw = localStorage.getItem(PROFILE_KEY);
@@ -87,7 +86,6 @@ export default function Profile() {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-10 grid grid-cols-1 md:grid-cols-5 gap-6">
-        {/* Profile form */}
         <Card className="md:col-span-3 bg-slate-900/60 border-slate-800">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
@@ -154,7 +152,6 @@ export default function Profile() {
           </CardContent>
         </Card>
 
-        {/* Recent local snapshots */}
         <Card className="md:col-span-2 bg-slate-900/60 border-slate-800">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
@@ -196,7 +193,6 @@ export default function Profile() {
   );
 }
 
-/** Simple input field with icon, no external UI deps */
 function Field({ label, icon, value, onChange, placeholder, type = "text" }) {
   return (
     <div className="space-y-1.5">
