@@ -1,364 +1,289 @@
-
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { createPageUrl } from "@/utils";
-import { base44 } from "@/api/base44Client";
-import { Card, CardContent } from "@/components/ui/card";
+import React, { useMemo, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import ResonifiSlider from "../components/ResonifiSlider";
-import ResonifiStepper from "../components/ResonifiStepper";
-import HydrationStepper from "../components/HydrationStepper";
-import { Save, ArrowRight, CheckCircle } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import { computeWellnessIndex } from "../components/lib/wellnessIndex";
-import { saveGuestCheckin, isGuestMode } from "../components/lib/guestMode";
-import BottomNav from "@/components/BottomNav"; // Added import for BottomNav
+import { Check, ArrowRight, ArrowLeft, Plus, Minus } from "lucide-react";
 
-export default function DailyCheckin() {
-  const navigate = useNavigate();
-  const [step, setStep] = useState(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [existingCheckin, setExistingCheckin] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isGuest, setIsGuest] = useState(false);
+/* helpers */
+const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 
-  const [formData, setFormData] = useState({
-    mood_rating: 5,
-    energy_level: 5,
-    sleep: 7,
-    exercise: 30,
-    stress_level: 5,
-    connection_rating: 5,
-    gratitude_rating: 5,
-    hydration: 2,
-    resilience: 5,
-    purpose: 5,
-  });
+function computeIndex({ mood, energy, sleepHrs, exerciseMin, waterL }) {
+  const mood10 = clamp(mood, 0, 10);
+  const energy10 = clamp(energy, 0, 10);
+  const sleep10 = clamp((sleepHrs / 12) * 10, 0, 10);
+  const exercise10 = clamp((exerciseMin / 60) * 10, 0, 10);
+  const water10 = clamp((waterL / 3) * 10, 0, 10);
+  const score01 = (mood10*0.25 + energy10*0.25 + sleep10*0.20 + exercise10*0.15 + water10*0.15) / 10;
+  return Math.round(score01 * 100);
+}
 
-  // Calculate REAL-TIME wellness index preview (SIMPLIFIED - 4 pillars only)
-  const currentIndex = computeWellnessIndex({
-    sleep: formData.sleep,
-    hydration: formData.hydration,
-    purpose: formData.purpose,
-    resilience: formData.resilience
-  });
+export default function CheckIn() {
+  const [step, setStep] = useState(1); // 1..4
 
-  useEffect(() => {
-    const loadTodayCheckin = async () => {
-      try {
-        if (isGuestMode()) {
-          setIsGuest(true);
-          return;
-        }
+  const [mood, setMood] = useState(5);
+  const [energy, setEnergy] = useState(5);
 
-        const user = await base44.auth.me();
-        setIsGuest(false);
-        
-        const today = new Date().toISOString().split('T')[0];
-        const checkins = await base44.entities.DailyCheckin.filter({
-          created_by: user.email,
-          date: today
-        });
+  const [sleepHrs, setSleepHrs] = useState(7.5);
+  const [exerciseMin, setExerciseMin] = useState(20);
+  const [waterL, setWaterL] = useState(3);
 
-        if (checkins.length > 0) {
-          const existing = checkins[0];
-          setExistingCheckin(existing);
-          setIsEditing(true);
-          
-          setFormData({
-            mood_rating: existing.mood_rating || 5,
-            energy_level: existing.energy_level || 5,
-            sleep: existing.sleep || 7,
-            exercise: existing.exercise || 30,
-            stress_level: existing.stress_level || 5,
-            connection_rating: existing.connection_rating || 5,
-            gratitude_rating: existing.gratitude_rating || 5,
-            hydration: existing.hydration || 2,
-            resilience: existing.resilience || 5,
-            purpose: existing.purpose || 5,
-          });
-        }
-      } catch (error) {
-        console.log('[DailyCheckin] Load existing failed (silent):', error);
-        setIsGuest(true);
-      }
+  const [gratitude, setGratitude] = useState("");
+  const [kindness, setKindness] = useState("");
+
+  const index = useMemo(
+    () => computeIndex({ mood, energy, sleepHrs, exerciseMin, waterL }),
+    [mood, energy, sleepHrs, exerciseMin, waterL]
+  );
+
+  const saveSnapshot = (completed) => {
+    const snap = {
+      ts: Date.now(),
+      completed,
+      index,
+      mood, energy, sleepHrs, exerciseMin, waterL,
+      gratitude: gratitude.trim(),
+      kindness: kindness.trim(),
     };
-
-    loadTodayCheckin();
-  }, []);
-
-  const handleChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleNext = () => {
-    if (step < steps.length - 1) {
-      setStep(step + 1);
-    }
-  };
-
-  const handleBack = () => {
-    if (step > 0) {
-      setStep(step - 1);
-    }
-  };
-
-  const handleSubmit = async () => {
-    setIsSubmitting(true);
-
     try {
-      const today = new Date().toISOString().split('T')[0];
-      
-      // Calculate REAL wellness index from actual form values (SIMPLIFIED)
-      const frequency_today = computeWellnessIndex({
-        sleep: formData.sleep,
-        hydration: formData.hydration,
-        purpose: formData.purpose,
-        resilience: formData.resilience
-      });
-
-      console.log('[DailyCheckin] Calculated index:', frequency_today);
-      console.log('[DailyCheckin] Form data:', { sleep: formData.sleep, hydration: formData.hydration, purpose: formData.purpose, resilience: formData.resilience });
-
-      if (isGuest) {
-        saveGuestCheckin({
-          index: frequency_today,
-          sleep: formData.sleep,
-          hydration: formData.hydration,
-          purpose: formData.purpose,
-          resilience: formData.resilience,
-          mood: formData.mood_rating,
-          energy: formData.energy_level,
-          exercise: formData.exercise,
-          stress: formData.stress_level,
-          connection: formData.connection_rating,
-          gratitude: formData.gratitude_rating
-        });
-
-        if (typeof window !== "undefined" && window.plausible) {
-          window.plausible("Guest Check-in Completed");
-        }
-      } else {
-        const checkinData = {
-          date: today,
-          frequency_today,
-          mood_rating: formData.mood_rating,
-          energy_level: formData.energy_level,
-          sleep: formData.sleep,
-          exercise: formData.exercise,
-          stress_level: formData.stress_level,
-          connection_rating: formData.connection_rating,
-          gratitude_rating: formData.gratitude_rating,
-          hydration: formData.hydration,
-          resilience: formData.resilience,
-          purpose: formData.purpose,
-          ...(existingCheckin?.spiritual_resonance && {
-            spiritual_resonance: existingCheckin.spiritual_resonance
-          })
-        };
-
-        console.log('[DailyCheckin] Saving to DB:', checkinData);
-
-        if (isEditing && existingCheckin) {
-          await base44.entities.DailyCheckin.update(existingCheckin.id, checkinData);
-          console.log('[DailyCheckin] Updated existing check-in');
-        } else {
-          await base44.entities.DailyCheckin.create(checkinData);
-          console.log('[DailyCheckin] Created new check-in');
-        }
-
-        if (typeof window !== "undefined" && window.plausible) {
-          window.plausible(isEditing ? "Daily Check-in Updated" : "Daily Check-in Completed");
-        }
-      }
-
-      // Store the FINAL calculated index
-      sessionStorage.setItem('res:fresh_index', String(frequency_today));
-      console.log('[DailyCheckin] Stored in sessionStorage:', frequency_today);
-      
-      // Navigate back
-      navigate(createPageUrl("Dashboard"));
-      
-    } catch (error) {
-      console.error('[DailyCheckin] Submit error:', error);
-      alert('Failed to save check-in. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
+      const key = "resonifi:snapshots";
+      const arr = JSON.parse(localStorage.getItem(key) || "[]");
+      arr.unshift(snap);
+      localStorage.setItem(key, JSON.stringify(arr.slice(0, 500)));
+    } catch {}
   };
-
-  const steps = [
-    {
-      title: "How are you feeling?",
-      fields: [
-        { label: "Mood", key: "mood_rating", type: "slider", min: 0, max: 10, labels: ["Low", "Great"] },
-        { label: "Energy", key: "energy_level", type: "slider", min: 0, max: 10, labels: ["Exhausted", "Energized"] },
-      ]
-    },
-    {
-      title: "Physical wellness",
-      fields: [
-        { label: "Sleep (hours)", key: "sleep", type: "slider", min: 0, max: 12, labels: ["0h", "12h"] },
-        { label: "Exercise (minutes)", key: "exercise", type: "stepper", min: 0, max: 180, step: 10 },
-        { label: "Hydration (liters)", key: "hydration", type: "hydration", min: 0, max: 4, step: 0.25 },
-      ]
-    },
-    {
-      title: "Mental & emotional",
-      fields: [
-        { label: "Stress level", key: "stress_level", type: "slider", min: 0, max: 10, labels: ["Calm", "Overwhelmed"] },
-        { label: "Connection with others", key: "connection_rating", type: "slider", min: 0, max: 10, labels: ["Isolated", "Connected"] },
-      ]
-    },
-    {
-      title: "Purpose & meaning",
-      fields: [
-        { label: "Resilience", key: "resilience", type: "slider", min: 0, max: 10, labels: ["Struggling", "Thriving"] },
-        { label: "Sense of purpose", key: "purpose", type: "slider", min: 0, max: 10, labels: ["Lost", "Clear"] },
-        { label: "Gratitude", key: "gratitude_rating", type: "slider", min: 0, max: 10, labels: ["None", "Abundant"] },
-      ]
-    }
-  ];
-
-  const currentStep = steps[step];
-  const progress = ((step + 1) / steps.length) * 100;
 
   return (
-    <>
-      <div className="page-has-bottom-nav min-h-screen bg-[#0F172A] text-white px-6 py-8 pb-24 md:pb-8">
-        <div className="max-w-2xl mx-auto">
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h1 className="text-3xl font-bold text-white">
-                {isGuest ? 'Guest Check-in' : (isEditing ? 'Update Your Check-in' : 'Daily Check-in')}
-              </h1>
-              <span className="text-sm text-gray-400">Step {step + 1} of {steps.length}</span>
-            </div>
-            
-            {isEditing && !isGuest && (
-              <div className="mb-4 p-3 bg-blue-500/20 border border-blue-500/30 rounded-lg">
-                <p className="text-sm text-blue-300">
-                  ✏️ You've already checked in today. Update your responses below.
-                </p>
-              </div>
-            )}
+    <div className="mx-auto max-w-5xl px-4 py-8">
+      <h1 className="text-2xl font-semibold mb-4">Daily Check-in</h1>
 
-            {/* Real-time Wellness Index Preview */}
-            <div className="mb-4 p-4 bg-indigo-500/20 border border-indigo-500/30 rounded-lg">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-indigo-300">Current Wellness Index</span>
-                <span className="text-2xl font-bold text-indigo-400">{currentIndex}</span>
-              </div>
-            </div>
-
-            <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
-              <motion.div
-                className="h-full bg-[#2DD4BF]"
-                initial={{ width: 0 }}
-                animate={{ width: `${progress}%` }}
-                transition={{ duration: 0.3 }}
-              />
-            </div>
+      {/* Index banner */}
+      <Card className="mb-6 bg-slate-900/60 border-slate-800">
+        <CardContent className="py-4">
+          <div className="flex items-center justify-between">
+            <div className="text-slate-300">Current Wellness Index</div>
+            <div className="text-xl font-semibold">{index}</div>
           </div>
+          <div className="mt-3 h-2 rounded bg-slate-800 overflow-hidden">
+            <div className="h-full bg-teal-400" style={{ width: `${index}%` }} />
+          </div>
+        </CardContent>
+      </Card>
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={step}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              <Card className="bg-[#1A2035]/80 border-slate-700/50">
-                <CardContent className="p-8">
-                  <h2 className="text-2xl font-semibold mb-8 text-center text-white">{currentStep.title}</h2>
-                  
-                  <div className="space-y-8">
-                    {currentStep.fields.map((field) => (
-                      <div key={field.key} className="space-y-3">
-                        {field.type === "slider" && (
-                          <ResonifiSlider
-                            label={field.label}
-                            value={formData[field.key]}
-                            onChange={(value) => handleChange(field.key, value)}
-                            min={field.min}
-                            max={field.max}
-                            step={field.step || 1}
-                            labels={field.labels}
-                          />
-                        )}
-                        
-                        {field.type === "stepper" && (
-                          <ResonifiStepper
-                            label={field.label}
-                            value={formData[field.key]}
-                            onChange={(value) => handleChange(field.key, value)}
-                            min={field.min}
-                            max={field.max}
-                            step={field.step}
-                            unit="min"
-                          />
-                        )}
-                        
-                        {field.type === "hydration" && (
-                          <HydrationStepper
-                            value={formData[field.key]}
-                            onChange={(value) => handleChange(field.key, value)}
-                            min={field.min}
-                            max={field.max}
-                            step={field.step}
-                          />
-                        )}
-                      </div>
-                    ))}
+      {/* Step card */}
+      <Card className="bg-slate-900/60 border-slate-800">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">
+              {step === 1 && "How are you feeling?"}
+              {step === 2 && "Physical wellness"}
+              {step === 3 && "Gently rebalance"}
+              {step === 4 && "Review & complete"}
+            </CardTitle>
+            <div className="text-xs text-slate-400">Step {step} of 4</div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-6">
+          {/* Step 1 */}
+          {step === 1 && (
+            <>
+              <SliderBlock
+                title={`Mood: ${mood}/10`}
+                minLabel="Low"
+                maxLabel="Great"
+                value={mood}
+                setValue={setMood}
+                min={0}
+                max={10}
+                step={1}
+              />
+              <SliderBlock
+                title={`Energy: ${energy}/10`}
+                minLabel="Exhausted"
+                maxLabel="Energized"
+                value={energy}
+                setValue={setEnergy}
+                min={0}
+                max={10}
+                step={1}
+              />
+            </>
+          )}
+
+          {/* Step 2 */}
+          {step === 2 && (
+            <>
+              <SliderBlock
+                title={`Sleep (hours): ${sleepHrs}/12`}
+                minLabel="0h"
+                maxLabel="12h"
+                value={sleepHrs}
+                setValue={(v) => setSleepHrs(Number(v))}
+                min={0}
+                max={12}
+                step={0.5}
+              />
+
+              <div>
+                <div className="mb-2 text-sm text-slate-300">Exercise (minutes)</div>
+                <div className="flex items-center gap-3">
+                  <Button variant="outline" onClick={() => setExerciseMin((m) => clamp(m - 5, 0, 180))}>
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <div className="flex-1 rounded-xl border border-slate-700 bg-slate-900/70 px-4 py-3 text-center text-teal-300 text-lg font-semibold">
+                    {exerciseMin} / 60
                   </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </AnimatePresence>
+                  <Button variant="outline" onClick={() => setExerciseMin((m) => clamp(m + 5, 0, 180))}>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="mt-1 text-xs text-slate-500">60 minutes is a gentle daily target.</div>
+              </div>
 
-          <div className="flex gap-4 mt-8">
-            {step > 0 && (
-              <Button
-                onClick={handleBack}
-                variant="outline"
-                className="flex-1 border-slate-700 bg-white/10 text-white hover:bg-white/20"
-                disabled={isSubmitting}
-              >
+              <div>
+                <div className="mb-2 text-sm text-slate-300">Water intake</div>
+                <div className="grid grid-cols-8 gap-2">
+                  {[0,0.5,1,1.5,2,2.5,3,4].map((lit) => (
+                    <button
+                      key={lit}
+                      onClick={() => setWaterL(lit)}
+                      className={`rounded-lg border px-3 py-2 text-sm ${
+                        waterL === lit
+                          ? "border-teal-400 bg-teal-500/10 text-teal-300"
+                          : "border-slate-700 bg-slate-900/70 text-slate-300 hover:bg-slate-800"
+                      }`}
+                    >
+                      {lit}L
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-1 text-xs text-slate-500">Recommended: 2–3 liters per day.</div>
+              </div>
+            </>
+          )}
+
+          {/* Step 3 */}
+          {step === 3 && (
+            <>
+              <Field
+                label="Gratitude"
+                placeholder="A small moment you appreciated today."
+                value={gratitude}
+                onChange={setGratitude}
+              />
+              <Field
+                label="Act of kindness"
+                placeholder="Something you did (or received) that brought ease."
+                value={kindness}
+                onChange={setKindness}
+              />
+            </>
+          )}
+
+          {/* Step 4: review */}
+          {step === 4 && (
+            <div className="space-y-4">
+              <SummaryRow label="Mood" value={`${mood}/10`} />
+              <SummaryRow label="Energy" value={`${energy}/10`} />
+              <SummaryRow label="Sleep" value={`${sleepHrs}h / 12h`} />
+              <SummaryRow label="Exercise" value={`${exerciseMin} min / 60`} />
+              <SummaryRow label="Water" value={`${waterL}L (target 3L)`} />
+              {gratitude && <SummaryRow label="Gratitude" value={gratitude} />}
+              {kindness && <SummaryRow label="Kindness" value={kindness} />}
+
+              <div className="pt-2">
+                <div className="text-sm text-slate-400">Current Wellness Index</div>
+                <div className="flex items-center gap-4 mt-1">
+                  <div className="text-3xl font-semibold">{index}</div>
+                  <div className="flex-1 h-2 rounded bg-slate-800 overflow-hidden">
+                    <div className="h-full bg-teal-400" style={{ width: `${index}%` }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Nav buttons */}
+          <div className="flex items-center justify-between pt-2">
+            {step > 1 ? (
+              <Button variant="outline" onClick={() => setStep((s) => s - 1)}>
+                <ArrowLeft className="h-4 w-4" />
                 Back
               </Button>
+            ) : (
+              <span />
             )}
-            
-            {step < steps.length - 1 ? (
-              <Button
-                onClick={handleNext}
-                className="flex-1 bg-[#2DD4BF] hover:bg-[#0D9488] text-white"
-              >
-                Next <ArrowRight className="w-4 h-4 ml-2" />
+
+            {step < 4 ? (
+              <Button onClick={() => setStep((s) => s + 1)}>
+                Next
+                <ArrowRight className="h-4 w-4" />
               </Button>
             ) : (
-              <Button
-                onClick={handleSubmit}
-                className="flex-1 bg-[#2DD4BF] hover:bg-[#0D9488] text-white"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    {isGuest ? 'Saving...' : (isEditing ? 'Updating...' : 'Saving...')}
-                  </>
-                ) : (
-                  <>
-                    {isGuest ? 'Complete Check-in' : (isEditing ? 'Update Check-in' : 'Complete Check-in')} <CheckCircle className="w-4 h-4 ml-2" />
-                  </>
-                )}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={() => saveSnapshot(false)}>
+                  Save locally
+                </Button>
+                <Button
+                  onClick={() => {
+                    saveSnapshot(true);
+                    setStep(1);
+                    window.location.hash = "#/insights"; // go see the result
+                  }}
+                >
+                  <Check className="h-4 w-4" />
+                  Complete
+                </Button>
+              </div>
             )}
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
-      <BottomNav />
-    </>
+/* small UI helpers */
+function SliderBlock({ title, minLabel, maxLabel, value, setValue, min, max, step }) {
+  return (
+    <div className="rounded-xl border border-slate-700 bg-slate-900/70 p-4">
+      <div className="text-sm font-medium text-slate-200">{title}</div>
+      <div className="mt-1 flex justify-between text-xs text-slate-400">
+        <span>{minLabel}</span>
+        <span>{maxLabel}</span>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => setValue(Number(e.target.value))}
+        className="mt-3 w-full accent-teal-400"
+      />
+    </div>
+  );
+}
+
+function Field({ label, value, onChange, placeholder }) {
+  return (
+    <div className="space-y-1.5">
+      <div className="text-sm text-slate-300">{label}</div>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-400/30"
+      />
+    </div>
+  );
+}
+
+function SummaryRow({ label, value }) {
+  return (
+    <div className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900/50 px-3 py-2 text-sm">
+      <div className="text-slate-300">{label}</div>
+      <div className="text-slate-100 font-medium">{value}</div>
+    </div>
   );
 }
