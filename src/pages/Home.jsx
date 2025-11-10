@@ -1,185 +1,136 @@
-import React, { useState } from "react";
+// src/pages/Home.jsx
+import React, { useMemo } from "react";
 
-/** Simple “breathing” ring animation */
-const css = `
-@keyframes breathe {
-  0%   { transform: scale(1);    box-shadow: 0 0 0 0 rgba(20,184,166,.20); }
-  50%  { transform: scale(1.04); box-shadow: 0 0 0 8px rgba(20,184,166,.10); }
-  100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(20,184,166,.20); }
-}
-`;
-
-/** Small modal for “Start Reflection”. No router needed. */
-function ReflectionModal({ open, onClose }) {
-  if (!open) return null;
-  return (
-    <div
-      className="fixed inset-0 z-50 grid place-items-center"
-      aria-modal="true"
-      role="dialog"
-    >
-      <div
-        className="absolute inset-0 bg-black/60"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-      <div className="relative w-full max-w-lg rounded-2xl bg-[#0f172a] text-slate-100 p-6 shadow-xl border border-white/10">
-        <h2 className="text-xl font-semibold mb-2">Quick check-in</h2>
-        <p className="text-slate-300 mb-4">
-          Take a short reflection. This is private—stored only on your device.
-        </p>
-
-        <label className="block text-sm text-slate-300 mb-1">Gratitude</label>
-        <input
-          className="w-full mb-3 rounded-md bg-[#0b1220] border border-white/10 px-3 py-2 outline-none focus:border-teal-400"
-          placeholder="A small moment you appreciated today…"
-        />
-
-        <label className="block text-sm text-slate-300 mb-1">
-          Act of kindness
-        </label>
-        <input
-          className="w-full mb-6 rounded-md bg-[#0b1220] border border-white/10 px-3 py-2 outline-none focus:border-teal-400"
-          placeholder="Something you did (or received) that brought ease…"
-        />
-
-        <div className="flex justify-end gap-2">
-          <button
-            className="px-4 py-2 rounded-lg border border-white/10 hover:bg-white/5"
-            onClick={onClose}
-          >
-            Close
-          </button>
-          <button
-            className="px-4 py-2 rounded-lg bg-teal-500/90 hover:bg-teal-400 text-slate-900 font-medium"
-            onClick={onClose}
-          >
-            Save locally
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+/** tiny helpers just for the score ring */
+const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
+function computeIndex({ mood = 5, energy = 5, sleep = 6, exercise = 20, water = 2 }) {
+  const mood10 = clamp(mood, 0, 10);
+  const energy10 = clamp(energy, 0, 10);
+  const sleep10 = clamp((sleep / 12) * 10, 0, 10);
+  const exercise10 = clamp((exercise / 60) * 10, 0, 10);
+  const water10 = clamp((water / 3) * 10, 0, 10);
+  const score = (mood10 * 0.25 + energy10 * 0.25 + sleep10 * 0.20 + exercise10 * 0.15 + water10 * 0.15) / 1.0;
+  return Math.round(score * 10); // number like 49, 55, 80 etc.
 }
 
 export default function Home() {
-  // You can change this number to whatever you like (e.g., 80)
-  const [score] = useState(49);
-  const [open, setOpen] = useState(false);
+  // fixed snapshot for the ring (no sliders here by design)
+  const score = useMemo(
+    () =>
+      computeIndex({
+        mood: 5,
+        energy: 5,
+        sleep: 6,
+        exercise: 20,
+        water: 2,
+      }),
+    []
+  );
+
+  const css = `
+    @keyframes breathe {
+      0%   { transform: scale(1);   box-shadow: 0 0 0 0 rgba(20,184,166,.25); }
+      50%  { transform: scale(1.04); box-shadow: 0 0 8px 0 rgba(20,184,166,.10); }
+      100% { transform: scale(1);   box-shadow: 0 0 0 0 rgba(20,184,166,.25); }
+    }
+  `;
 
   return (
-    <div className="min-h-screen bg-[#0b1220] text-slate-100">
-      {/* inject ring CSS */}
+    <div className="min-h-screen bg-slate-950 text-slate-200">
       <style>{css}</style>
 
-      {/* Top bar */}
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0b1220]/80 backdrop-blur">
-        <div className="mx-auto max-w-6xl px-4 h-14 flex items-center justify-between">
+      {/* Top bar with simple links (hash links so no router needed) */}
+      <header className="sticky top-0 z-10 border-b border-white/5 bg-slate-950/70 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-2">
             <div className="h-3 w-3 rounded-full bg-teal-400" />
-            <span className="font-semibold tracking-wide">Resonifi</span>
+            <span className="text-sm font-semibold tracking-wide">Resonifi</span>
           </div>
-
-          {/* simple links – these will work if your routes/files exist */}
-          <nav className="hidden sm:flex items-center gap-5 text-sm">
-            <a href="/DailyCheckin" className="hover:text-teal-300">
+          <nav className="flex items-center gap-4 text-sm">
+            <a href="#/checkin" className="hover:text-white/90 text-white/70">
               Check-In
             </a>
-            <a href="/Insights" className="hover:text-teal-300">
+            <a href="#/insights" className="hover:text-white/90 text-white/70">
               Insights
             </a>
-            <a href="/Support" className="hover:text-teal-300">
+            <a href="#/support" className="hover:text-white/90 text-white/70">
               Support
             </a>
-            <a href="/Profile" className="hover:text-teal-300">
+            <a href="#/profile" className="hover:text-white/90 text-white/70">
               Profile
             </a>
+            <a
+              href="#/checkin"
+              className="rounded-md bg-teal-500 px-3 py-1.5 text-xs font-semibold text-slate-900 hover:bg-teal-400"
+            >
+              Start Reflection →
+            </a>
           </nav>
-
-          <button
-            onClick={() => setOpen(true)}
-            className="rounded-xl bg-teal-500/90 px-3 py-1.5 text-sm font-medium text-slate-900 hover:bg-teal-400"
-          >
-            Start Reflection
-          </button>
         </div>
       </header>
 
-      {/* Main */}
-      <main className="mx-auto max-w-6xl px-4 py-10 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Score card */}
-        <section className="lg:col-span-2 rounded-2xl border border-white/10 bg-[#0f172a] p-6 shadow">
-          <h2 className="text-sm text-slate-300 flex items-center gap-2 mb-6">
-            <span className="opacity-80">Core resonance</span>
-            <span className="opacity-40">•</span>
-            <span className="opacity-60">Guiding tone: 528 Hz</span>
-          </h2>
-
-          <div className="flex items-center justify-center py-8">
+      {/* Hero with breathing ring and score */}
+      <main className="mx-auto grid max-w-6xl gap-6 px-4 py-10 md:grid-cols-2">
+        <section className="rounded-xl border border-white/5 bg-slate-900/40 p-6">
+          <h2 className="mb-6 text-sm font-semibold tracking-wide text-white/80">Core Resonance</h2>
+          <div className="mx-auto grid place-items-center">
             <div
-              className="relative h-52 w-52 rounded-full grid place-items-center"
-              style={{ animation: "breathe 3.8s ease-in-out infinite" }}
+              className="relative grid h-44 w-44 place-items-center rounded-full bg-gradient-to-b from-slate-800 to-slate-900"
+              style={{ animation: "breathe 4s ease-in-out infinite" }}
             >
-              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#172036] to-[#0b1220] border border-white/10" />
-              <div className="relative h-40 w-40 rounded-full grid place-items-center bg-gradient-to-tr from-[#0ddfc2] to-[#6ee7f2] text-[#052825] font-bold text-5xl">
-                {score}
-              </div>
+              <div className="absolute inset-0 rounded-full ring-8 ring-slate-800" />
+              <div className="absolute inset-3 rounded-full bg-slate-950 shadow-inner" />
+              <span className="relative text-4xl font-bold text-teal-300">{score}</span>
             </div>
+            <p className="mt-6 text-center text-sm text-white/70">
+              A calm snapshot of where you are. Start a check-in to update your wellness index.
+            </p>
+            <a
+              href="#/checkin"
+              className="mt-6 rounded-md bg-teal-500 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-teal-400"
+            >
+              Start Check-In
+            </a>
           </div>
-
-          <p className="mt-4 text-center text-slate-300">
-            A calm snapshot of where you are. Start a reflection when you’re
-            ready.
-          </p>
         </section>
 
-        {/* Snapshot / actions */}
-        <aside className="rounded-2xl border border-white/10 bg-[#0f172a] p-6 shadow space-y-6">
-          <div>
-            <h3 className="text-sm text-slate-300 mb-3">Snapshot</h3>
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={() => setOpen(true)}
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-left hover:border-teal-400 hover:bg-white/10"
-              >
-                Try without signup
-              </button>
-              <a
-                href="/Support"
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-left hover:border-teal-400 hover:bg-white/10"
-              >
-                Learn the approach
-              </a>
-            </div>
-            <p className="mt-3 text-xs text-slate-400">
-              Private by default. Reflection over logging. You own your data.
-            </p>
+        <section className="rounded-xl border border-white/5 bg-slate-900/40 p-6">
+          <h3 className="mb-4 text-sm font-semibold tracking-wide text-white/80">Snapshot</h3>
+          <p className="text-sm text-white/70">
+            Private by default. Reflection over logging. You own your data.
+          </p>
+
+          <div className="mt-6 grid grid-cols-2 gap-3">
+            <a
+              href="#/checkin"
+              className="rounded-lg border border-white/10 bg-slate-900/60 px-4 py-3 text-center text-sm hover:border-white/20"
+            >
+              Try without signup
+            </a>
+            <a
+              href="#/support"
+              className="rounded-lg border border-white/10 bg-slate-900/60 px-4 py-3 text-center text-sm hover:border-white/20"
+            >
+              Learn the approach
+            </a>
           </div>
 
-          <div>
-            <h3 className="text-sm text-slate-300 mb-3">Solfeggio cues</h3>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                ["Emotional", "396 Hz (gentle cue)"],
-                ["Physical", "417 Hz (gentle cue)"],
-                ["Financial", "741 Hz (gentle cue)"],
-                ["Spiritual", "852 Hz (gentle cue)"],
-              ].map(([title, sub]) => (
-                <div
-                  key={title}
-                  className="rounded-lg border border-white/10 bg-white/5 px-3 py-2"
-                >
-                  <div className="text-sm">{title}</div>
-                  <div className="text-xs text-slate-400">{sub}</div>
-                </div>
-              ))}
+          <div className="mt-6 grid grid-cols-2 gap-3">
+            <div className="rounded-lg border border-white/10 bg-slate-900/60 p-3 text-xs text-white/70">
+              Emotional · 396 Hz (gentle cue)
+            </div>
+            <div className="rounded-lg border border-white/10 bg-slate-900/60 p-3 text-xs text-white/70">
+              Physical · 417 Hz (gentle cue)
+            </div>
+            <div className="rounded-lg border border-white/10 bg-slate-900/60 p-3 text-xs text-white/70">
+              Financial · 741 Hz (gentle cue)
+            </div>
+            <div className="rounded-lg border border-white/10 bg-slate-900/60 p-3 text-xs text-white/70">
+              Spiritual · 852 Hz (gentle cue)
             </div>
           </div>
-        </aside>
+        </section>
       </main>
-
-      {/* Modal */}
-      <ReflectionModal open={open} onClose={() => setOpen(false)} />
     </div>
   );
 }
