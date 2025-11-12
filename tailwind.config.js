@@ -1,8 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ["./index.html", "./src/**/*.{js,jsx,ts,tsx}"],
-  theme: {
-    extend: {},
-  },
-  plugins: [], // ← no external plugins
+  theme: { extend: {} },
+  plugins: [require("tailwindcss-animate")]
 }
