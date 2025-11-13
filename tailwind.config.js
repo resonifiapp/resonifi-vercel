@@ -7,5 +7,6 @@ module.exports = {
   theme: {
     extend: {},
   },
+  // IMPORTANT: no plugins that mention "tailwindcss-animate" here
   plugins: [],
 };
