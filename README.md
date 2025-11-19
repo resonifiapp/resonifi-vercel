@@ -1,22 +1,15 @@
-# Clean Vercel Build – Nov 6 Test
-# Base44 App
+# Resonifi MVP
 
+Simple React + Vite single page app with:
 
-This app was created automatically by Base44.
-It's a Vite+React app that communicates with the Base44 API.
+- Top bar
+- Card based home screen
+- Bottom navigation with text labels (no icons)
+- Pages: Home, Insights, Support, Profile
 
-## Running the app
+## Scripts
 
-```bash
-npm install
-npm run dev
-```
-
-## Building the app
-
-```bash
-npm run build
-```
-
-For more information and support, please contact Base44 support at app@base44.com.
-Refresh commit for clean Vercel deploy
+- `npm install`
+- `npm run dev`
+- `npm run build`
+- `npm run preview`

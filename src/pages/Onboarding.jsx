@@ -1,203 +1,311 @@
-import React, { useState, useEffect } from "react";
+// src/pages/Onboarding.jsx
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { createPageUrl } from "@/utils";
-import { base44 } from "@/api/base44Client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { ChevronRight, Shield, X } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import Meta from "../components/Meta";
 
-export default function Onboarding() {
+const steps = [
+  {
+    id: 1,
+    title: "Welcome to Resonifi",
+    tag: "Big picture",
+    body: "Resonifi is a simple daily check-in tool. It helps you see how your inner and outer life are adding up over time — without judgement, advice, or noise.",
+    bullets: [
+      "Built for real life, not perfection",
+      "Short daily reflections, not a therapy session",
+      "Your data stays on your account — it’s your story",
+    ],
+  },
+  {
+    id: 2,
+    title: "Your four pillars",
+    tag: "Framework",
+    body: "Every day, you check in on four core pillars of your life. Together, they make up your overall Wellness Index.",
+    bullets: [
+      "Emotional – mood, stress, resilience, and your inner world",
+      "Physical – energy, movement, rest, and how your body feels",
+      "Spiritual – connection, meaning, purpose, and ‘bigger than me’",
+      "Financial – stability, control, and confidence with money",
+    ],
+  },
+  {
+    id: 3,
+    title: "Daily check-ins & the Wellness Index",
+    tag: "How it works",
+    body: "Each check-in is a small snapshot of your day. Resonifi turns those snapshots into a simple Wellness Index you can feel, not obsess over.",
+    bullets: [
+      "Answer quick questions for each pillar using sliders",
+      "Add a note, gratitude, and a good deed if you like",
+      "Your latest check-in updates the Wellness Index on your Home screen",
+    ],
+  },
+  {
+    id: 4,
+    title: "Your data, your pace",
+    tag: "Safety & privacy",
+    body: "Resonifi is a reflection tool, not a crisis service and not an ad network. It’s here to help you notice patterns, not sell your information.",
+    bullets: [
+      "Check-ins are stored privately in your own account on this device",
+      "We don’t sell reproductive or wellness data — ever",
+      "You can pause, skip days, or stop any time and pick it back up later",
+    ],
+  },
+];
+
+function StepDot({ active }) {
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        width: active ? "14px" : "8px",
+        height: "8px",
+        borderRadius: "999px",
+        margin: "0 4px",
+        background: active ? "rgba(176, 144, 255, 1)" : "rgba(176, 144, 255, 0.35)",
+        transition: "all 0.2s ease",
+      }}
+    />
+  );
+}
+
+function Onboarding() {
+  const [current, setCurrent] = useState(0);
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState(0);
-  const [showPrivacyBanner, setShowPrivacyBanner] = useState(true);
+  const step = steps[current];
 
-  const steps = [
-    {
-      emoji: "👋",
-      title: "Welcome to Resonifi™",
-      description: "Track your daily wellness frequency and discover your patterns.",
-    },
-    {
-      emoji: "📊",
-      title: "Simple Daily Check-ins",
-      description: "Answer a few quick questions each day to build your wellness baseline.",
-    },
-    {
-      emoji: "🎯",
-      title: "Personalized Insights",
-      description: "See trends, patterns, and get actionable recommendations.",
-    },
-    {
-      emoji: "🔒",
-      title: "Your Data, Your Privacy",
-      description: "Your wellness journey is private and secure. We never share your data.",
-    },
-  ];
-
-  useEffect(() => {
-    const hasSeenOnboarding = localStorage.getItem('onboardingComplete');
-    if (hasSeenOnboarding === 'true') {
-      navigate(createPageUrl('Dashboard'));
-    }
-  }, [navigate]);
-
-  const handleNext = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
+  const goNext = () => {
+    if (current < steps.length - 1) {
+      setCurrent(current + 1);
     } else {
-      localStorage.setItem('onboardingComplete', 'true');
-      navigate(createPageUrl('DailyCheckin'));
+      navigate("/home");
     }
+  };
+
+  const goBack = () => {
+    if (current > 0) setCurrent(current - 1);
   };
 
   const handleSkip = () => {
-    localStorage.setItem('onboardingComplete', 'true');
-    navigate(createPageUrl('DailyCheckin'));
+    navigate("/home");
   };
 
-  return (
-    <>
-      <Meta
-        title="Welcome to Resonifi™"
-        description="Get started with your daily wellness tracking"
-        noIndex={true}
-      />
+  const isLast = current === steps.length - 1;
 
-      <div className="min-h-screen bg-[#0F172A] flex items-center justify-center p-6 relative">
-        
-        {/* Privacy Modal */}
-        <AnimatePresence>
-          {showPrivacyBanner && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6"
-              onClick={() => setShowPrivacyBanner(false)}
-            >
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                onClick={(e) => e.stopPropagation()}
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        padding: "4.5rem 1.5rem 2rem",
+        display: "flex",
+        justifyContent: "center",
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: "720px",
+        }}
+      >
+        {/* Header */}
+        <header style={{ marginBottom: "1.5rem" }}>
+          <h1
+            style={{
+              fontSize: "1.6rem",
+              fontWeight: 600,
+              marginBottom: "0.25rem",
+            }}
+          >
+            Getting started with Resonifi
+          </h1>
+          <p
+            style={{
+              fontSize: "0.9rem",
+              opacity: 0.7,
+            }}
+          >
+            A quick walkthrough of how Resonifi works before you start tracking
+            your own days.
+          </p>
+        </header>
+
+        {/* Card */}
+        <section
+          style={{
+            background:
+              "radial-gradient(circle at top left, rgba(110, 86, 255, 0.35), rgba(12, 18, 40, 0.95))",
+            borderRadius: "1.25rem",
+            padding: "1.6rem 1.5rem 1.4rem",
+            border: "1px solid rgba(140, 120, 255, 0.28)",
+            boxShadow: "0 22px 60px rgba(0, 0, 0, 0.55)",
+          }}
+        >
+          {/* Step header row */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "baseline",
+              marginBottom: "0.9rem",
+            }}
+          >
+            <div>
+              <div
                 style={{
-                  background: 'linear-gradient(135deg, #0E1A24 0%, #122C35 100%)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  borderRadius: '1rem',
-                  padding: '2rem',
-                  maxWidth: '32rem',
-                  width: '100%',
-                  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)'
+                  fontSize: "0.75rem",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.12em",
+                  opacity: 0.75,
+                  marginBottom: "0.15rem",
                 }}
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <Shield style={{ width: '1.5rem', height: '1.5rem', color: '#00BFA6' }} />
-                    <h3 style={{ color: '#FFFFFF', fontSize: '1.25rem', fontWeight: 600 }}>
-                      Your Privacy Matters
-                    </h3>
-                  </div>
-                  <button
-                    onClick={() => setShowPrivacyBanner(false)}
-                    style={{
-                      color: '#A8B3C5',
-                      background: 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: '0.25rem'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.color = '#FFFFFF'}
-                    onMouseLeave={(e) => e.currentTarget.style.color = '#A8B3C5'}
-                  >
-                    <X style={{ width: '1.25rem', height: '1.25rem' }} />
-                  </button>
-                </div>
-                
-                <div style={{ color: '#A8B3C5', fontSize: '0.9375rem', lineHeight: '1.6', marginBottom: '1.5rem' }}>
-                  <p style={{ marginBottom: '0.75rem' }}>
-                    We want you to feel safe and in control. While your email is essential for managing your account and ensuring your data is secure, we will never use it for marketing or unwanted contact without your express permission.
-                  </p>
-                  <p style={{ marginBottom: '0.75rem' }}>
-                    You can opt-out of any emails from us, unless you've opted into a service like Reminders. Your data remains <strong style={{ color: '#FFFFFF' }}>yours</strong>.
-                  </p>
-                </div>
+                Step {current + 1} of {steps.length} · {step.tag}
+              </div>
+              <h2
+                style={{
+                  fontSize: "1.25rem",
+                  fontWeight: 600,
+                }}
+              >
+                {step.title}
+              </h2>
+            </div>
 
-                <Button
-                  onClick={() => setShowPrivacyBanner(false)}
-                  className="w-full bg-[#00BFA6] hover:bg-[#00D4B8] text-white"
-                >
-                  Got it
-                </Button>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Onboarding Content */}
-        <div className="max-w-2xl w-full">
-          <div className="mb-8 flex justify-center gap-2">
-            {steps.map((_, index) => (
-              <div
-                key={index}
-                className={`h-2 rounded-full transition-all duration-300 ${
-                  index === currentStep 
-                    ? 'w-8 bg-[#00BFA6]' 
-                    : 'w-2 bg-gray-600'
-                }`}
-              />
-            ))}
+            <button
+              onClick={handleSkip}
+              style={{
+                fontSize: "0.8rem",
+                opacity: 0.7,
+                border: "none",
+                background: "transparent",
+                color: "#ffffff",
+                cursor: "pointer",
+                textDecoration: "underline",
+              }}
+            >
+              Skip for now
+            </button>
           </div>
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentStep}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              <Card className="bg-[#1A2035]/80 border-slate-700/50 backdrop-blur-sm">
-                <CardContent className="p-8 text-center">
-                  <div className="text-6xl mb-6">{steps[currentStep].emoji}</div>
-                  <h2 className="text-3xl font-bold text-white mb-4">
-                    {steps[currentStep].title}
-                  </h2>
-                  <p className="text-gray-300 text-lg mb-8">
-                    {steps[currentStep].description}
-                  </p>
+          {/* Body text */}
+          <p
+            style={{
+              fontSize: "0.9rem",
+              opacity: 0.9,
+              marginBottom: "0.9rem",
+              lineHeight: 1.45,
+            }}
+          >
+            {step.body}
+          </p>
 
-                  <div className="flex gap-4">
-                    {currentStep === 0 && (
-                      <Button
-                        onClick={handleSkip}
-                        variant="ghost"
-                        className="flex-1 text-gray-400 hover:text-white"
-                      >
-                        Skip intro
-                      </Button>
-                    )}
-                    <Button
-                      onClick={handleNext}
-                      className="flex-1 bg-[#00BFA6] hover:bg-[#00D4B8] text-white"
-                    >
-                      {currentStep === steps.length - 1 ? (
-                        "Get Started"
-                      ) : (
-                        <>
-                          Next
-                          <ChevronRight className="ml-2 w-4 h-4" />
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </AnimatePresence>
-        </div>
+          {/* Bullets */}
+          <ul
+            style={{
+              listStyle: "none",
+              padding: 0,
+              margin: 0,
+              fontSize: "0.88rem",
+              opacity: 0.95,
+            }}
+          >
+            {step.bullets.map((b, i) => (
+              <li
+                key={i}
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  marginBottom: "0.45rem",
+                }}
+              >
+                <span
+                  style={{
+                    width: "6px",
+                    height: "6px",
+                    marginTop: "0.35rem",
+                    marginRight: "0.6rem",
+                    borderRadius: "999px",
+                    background: "rgba(186, 160, 255, 1)",
+                    flexShrink: 0,
+                  }}
+                />
+                <span>{b}</span>
+              </li>
+            ))}
+          </ul>
+
+          {/* Footer: dots + buttons */}
+          <div
+            style={{
+              marginTop: "1.2rem",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "0.75rem",
+              flexWrap: "wrap",
+            }}
+          >
+            {/* Step dots */}
+            <div>
+              {steps.map((s, i) => (
+                <StepDot key={s.id} active={i === current} />
+              ))}
+            </div>
+
+            {/* Nav buttons */}
+            <div
+              style={{
+                display: "flex",
+                gap: "0.5rem",
+              }}
+            >
+              <button
+                onClick={goBack}
+                disabled={current === 0}
+                style={{
+                  padding: "0.55rem 0.9rem",
+                  borderRadius: "999px",
+                  border: "1px solid rgba(160, 160, 185, 0.6)",
+                  background: current === 0 ? "transparent" : "rgba(12, 18, 40, 0.9)",
+                  color: current === 0 ? "rgba(255,255,255,0.3)" : "#ffffff",
+                  cursor: current === 0 ? "default" : "pointer",
+                  fontSize: "0.8rem",
+                }}
+              >
+                Back
+              </button>
+
+              <button
+                onClick={goNext}
+                style={{
+                  padding: "0.55rem 1.3rem",
+                  borderRadius: "999px",
+                  border: "none",
+                  background:
+                    "linear-gradient(135deg, rgba(167, 130, 255, 1), rgba(104, 208, 255, 1))",
+                  color: "#050510",
+                  fontWeight: 600,
+                  fontSize: "0.83rem",
+                  cursor: "pointer",
+                }}
+              >
+                {isLast ? "Finish and go to Home" : "Next"}
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* Small note at bottom */}
+        <p
+          style={{
+            marginTop: "1rem",
+            fontSize: "0.75rem",
+            opacity: 0.6,
+            textAlign: "center",
+          }}
+        >
+          You can revisit this walkthrough any time from your Account screen.
+        </p>
       </div>
-    </>
+    </div>
   );
 }
+
+export default Onboarding;

@@ -1,21 +1,15 @@
 import React from "react";
-import { Outlet } from "react-router-dom";
+import TopBar from "./TopBar.jsx";
+import BottomNav from "./BottomNav.jsx";
 
-/**
- * Resonifi Layout (Minimal App Shell)
- * - Removes the old top nav entirely
- * - Keeps consistent dark background
- * - Ensures bottom nav from each page stays visible
- * - Centers dashboard content with proper padding
- */
-
-export default function Layout() {
+function Layout({ children }) {
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      {/* Main scrollable content */}
-      <div className="pb-20">
-        <Outlet />
-      </div>
+    <div className="app-shell">
+      <TopBar />
+      <main className="app-main">{children}</main>
+      <BottomNav />
     </div>
   );
 }
+
+export default Layout;
