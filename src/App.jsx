@@ -8,7 +8,14 @@ import DailyCheckinPage from "./pages/DailyCheckinPage";
 import Insights from "./pages/Insights";
 import Journal from "./pages/Journal";
 import CycleTracking from "./pages/CycleTracking";
-import Account from "./pages/Account";         // ✅ Account page
+import Account from "./pages/Account";
+import Onboarding from "./pages/Onboarding";
+
+// ⭐ Pillar Detail
+import PillarDetail from "./pages/PillarDetail";
+
+// ⭐ NEW — Why patterns take two weeks
+import InsightsWhy from "./pages/InsightsWhy";
 
 import BottomNav from "./components/BottomNav";
 
@@ -27,7 +34,7 @@ export default function App() {
         {/* Default route -> Home */}
         <Route path="/" element={<Home />} />
 
-        {/* If someone goes to /home, redirect to root */}
+        {/* Redirect /home to / */}
         <Route path="/home" element={<Navigate to="/" replace />} />
 
         {/* Core app pages */}
@@ -35,7 +42,14 @@ export default function App() {
         <Route path="/insights" element={<Insights />} />
         <Route path="/journal" element={<Journal />} />
         <Route path="/cycle-tracking" element={<CycleTracking />} />
-        <Route path="/account" element={<Account />} />      {/* ✅ new route */}
+        <Route path="/account" element={<Account />} />
+        <Route path="/onboarding" element={<Onboarding />} />
+
+        {/* ⭐ Full pillar detail page */}
+        <Route path="/pillar/:pillarId" element={<PillarDetail />} />
+
+        {/* ⭐ NEW — Why this takes about two weeks */}
+        <Route path="/insights-why" element={<InsightsWhy />} />
 
         {/* Catch-all fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

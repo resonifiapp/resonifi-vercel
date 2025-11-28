@@ -2,281 +2,299 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const CARD_GRADIENTS = {
-  emotional: "linear-gradient(180deg, #8B5CF6, #3B82F6)",
-  physical: "linear-gradient(180deg, #3B82F6, #22D3EE)",
-  spiritual: "linear-gradient(180deg, #22D3EE, #A78BFA)",
-  financial: "linear-gradient(180deg, #FCD34D, #4ADE80)",
-};
-
 const HISTORY_KEY = "resonifi_checkins_v1";
+const NAME_KEY = "resonifi_user_name";
 
-// ---- PillarCard component ----
-function PillarCard({ title, description, value, gradient }) {
-  const clamped = Math.max(0, Math.min(10, Number(value) || 0));
-  const heightPercent = (clamped / 10) * 100;
+const PILLARS = [
+  { id: "emotional", label: "Emotional" },
+  { id: "physical", label: "Physical" },
+  { id: "spiritual", label: "Spiritual" },
+  { id: "financial", label: "Financial" },
+  { id: "digital", label: "Digital" },
+];
 
-  const card = {
-    flex: 1,
-    minWidth: "240px",
-    padding: "16px",
-    borderRadius: "16px",
-    background: "rgba(255,255,255,0.04)",
-    border: "1px solid rgba(255,255,255,0.08)",
-    boxShadow: "0 4px 14px rgba(0,0,0,0.35)",
-    color: "#f9fafb",
-    margin: "10px",
-    backdropFilter: "blur(16px)",
-  };
-
-  const tubeWrapper = {
-    width: 40,
-    height: 150, // taller pillars
-    borderRadius: "40px",
-    background: "rgba(255,255,255,0.07)",
-    border: "1px solid rgba(255,255,255,0.12)",
-    overflow: "hidden",
-    marginTop: "8px",
-    marginBottom: "6px",
-    marginLeft: "auto",
-    marginRight: "auto",
-    display: "flex",
-    alignItems: "flex-end",
-  };
-
-  const tubeFill = {
-    width: "100%",
-    height: `${heightPercent}%`,
-    background: gradient,
-    transition: "height 0.4s ease, box-shadow 0.4s ease",
-    borderRadius: "40px",
-    boxShadow:
-      "0 0 24px rgba(56,189,248,0.9), 0 0 60px rgba(56,189,248,0.55)",
-  };
-
-  const header = { fontSize: "15px", fontWeight: 600 };
-  const desc = {
-    fontSize: "13px",
-    opacity: 0.75,
-    lineHeight: "1.45",
-    marginTop: "4px",
-  };
-
-  return (
-    <div style={card}>
-      <p style={header}>{title}</p>
-      <p style={desc}>{description}</p>
-
-      <div style={tubeWrapper}>
-        <div style={tubeFill} />
-      </div>
-    </div>
-  );
-}
-
-// ---- Main Home Page ----
 export default function Home() {
   const navigate = useNavigate();
+
   const [latest, setLatest] = useState(null);
-  const [indexValue, setIndexValue] = useState(70);
+  const [indexValue, setIndexValue] = useState(null);
+  const [userName, setUserName] = useState("");
 
+  // Load latest check-in and index
   useEffect(() => {
-    const raw = localStorage.getItem(HISTORY_KEY);
-    if (!raw) return;
-
     try {
+      const raw = window.localStorage.getItem(HISTORY_KEY);
+      if (!raw) return;
+
       const arr = JSON.parse(raw);
       if (!Array.isArray(arr) || arr.length === 0) return;
 
-      // Make sure we really get the newest one by timestamp
+      // newest first
       const sorted = [...arr].sort((a, b) => {
         const ta = new Date(a.timestamp || 0).getTime();
         const tb = new Date(b.timestamp || 0).getTime();
-        return tb - ta; // newest first
+        return tb - ta;
       });
 
       const newest = sorted[0];
       setLatest(newest);
 
-      const e = Number(newest.emotional ?? 0);
-      const p = Number(newest.physical ?? 0);
-      const s = Number(newest.spiritual ?? 0);
-      const f = Number(newest.financial ?? 0);
+      // Prefer stored index (0–100)
+      const stored = Number(newest.index);
+      if (Number.isFinite(stored)) {
+        const clamped = Math.max(0, Math.min(100, stored));
+        setIndexValue(clamped);
+        return;
+      }
 
-      // clamp 0–10
-      const clamp = (x) => Math.max(0, Math.min(10, x || 0));
-      const avg = (clamp(e) + clamp(p) + clamp(s) + clamp(f)) / 4;
+      // Fallback: compute from pillars 1–10 → 0–100
+      const keys = ["emotional", "physical", "spiritual", "financial", "digital"];
+      let sum = 0;
+      let count = 0;
 
-      // use stored index if it exists, otherwise compute from pillars
-      const storedIndex =
-        newest.index !== undefined && newest.index !== null
-          ? Number(newest.index)
-          : null;
+      keys.forEach((key) => {
+        const num = Number(newest[key]);
+        if (Number.isFinite(num)) {
+          sum += num;
+          count += 1;
+        }
+      });
 
-      const computedIndex = Math.round(avg * 10); // 0–100
-      const finalIndex =
-        storedIndex !== null && !Number.isNaN(storedIndex)
-          ? storedIndex
-          : computedIndex;
-
-      setIndexValue(Math.max(0, Math.min(100, finalIndex)));
-    } catch {
-      // ignore parse errors
+      if (count > 0) {
+        const avg = sum / count; // 1–10
+        const percent = Math.round(avg * 10); // 0–100
+        setIndexValue(percent);
+      }
+    } catch (err) {
+      console.error("Error loading latest check-in for Home:", err);
     }
   }, []);
 
+  // Load stored name from Account page
+  useEffect(() => {
+    try {
+      const storedName = window.localStorage.getItem(NAME_KEY);
+      if (storedName) {
+        setUserName(storedName);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // --- Styles ---
   const container = {
-    padding: "24px",
+    backgroundColor: "#020617",
     color: "#f9fafb",
-    paddingBottom: "90px",
+    minHeight: "100vh",
+    padding: "24px 16px 90px",
+    boxSizing: "border-box",
+    fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+    maxWidth: "960px",
+    margin: "0 auto",
   };
 
-  const sectionTitle = {
-    fontSize: "18px",
+  const headerTitle = {
+    fontSize: "20px",
     fontWeight: 600,
-    marginBottom: "12px",
-    opacity: 0.9,
+    marginBottom: "4px",
   };
 
-  const introBox = {
-    background: "rgba(255,255,255,0.03)",
-    padding: "24px",
-    borderRadius: "20px",
-    border: "1px solid rgba(255,255,255,0.08)",
-    marginBottom: "28px",
-    boxShadow: "0 4px 14px rgba(0,0,0,0.35)",
+  const headerSubtitle = {
+    fontSize: "13px",
+    color: "#94a3b8",
+    marginBottom: "24px",
   };
 
-  const indexCircleWrapper = {
+  const ballWrapper = {
+    display: "flex",
+    justifyContent: "center",
+    marginBottom: "8px",
+  };
+
+  const ballOuter = {
     position: "relative",
-    width: 120,
-    height: 120,
-    marginLeft: "auto",
-  };
-
-  const indexCircle = {
-    width: "100%",
-    height: "100%",
+    width: 160,
+    height: 160,
     borderRadius: "50%",
-    background: "conic-gradient(#3B82F6, #06B6D4, #10B981)",
+    background: "conic-gradient(#22d3ee, #6366f1, #22c55e, #22d3ee)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    color: "#fff",
+    boxShadow:
+      "0 0 40px rgba(56,189,248,0.7), 0 0 90px rgba(79,70,229,0.7)",
+  };
+
+  const ballInner = {
+    width: 112,
+    height: 112,
+    borderRadius: "50%",
+    backgroundColor: "#020617",
+    border: "1px solid rgba(148,163,184,0.7)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  };
+
+  const ballNumber = {
+    fontSize: "32px",
     fontWeight: 600,
-    fontSize: "18px",
-    boxShadow: "0 0 30px rgba(56,189,248,0.35)",
+    color: "#f9fafb",
+    lineHeight: 1,
   };
 
-  const indexText = {
-    position: "absolute",
-    inset: 0,
-    margin: "auto",
-    width: "70px",
-    height: "70px",
-    borderRadius: "50%",
-    backgroundColor: "#0f172a",
+  const ballLabelOutside = {
+    textAlign: "center",
+    fontSize: "11px",
+    letterSpacing: "0.12em",
+    textTransform: "uppercase",
+    color: "#cbd5e1",
+    marginTop: "8px",
+    marginBottom: "24px",
+  };
+
+  const pillarsRow = {
     display: "flex",
+    justifyContent: "space-between",
+    gap: "10px",
+    marginTop: "4px",
+    marginBottom: "32px",
+  };
+
+  const tubeWrapper = {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
     alignItems: "center",
+    minWidth: 40,
+  };
+
+  const tubeShell = {
+    width: 24,
+    height: 110,
+    borderRadius: 9999,
+    background: "rgba(15,23,42,0.95)",
+    border: "1px solid rgba(148,163,184,0.6)",
+    overflow: "hidden",
+    display: "flex",
+    alignItems: "flex-end",
     justifyContent: "center",
-    color: "#e2e8f0",
+    boxShadow: "0 0 18px rgba(15,23,42,1)",
+  };
+
+  const tubeLabel = {
+    marginTop: "8px",
+    fontSize: "11px",
+    color: "#cbd5e1",
+  };
+
+  const bottomButtonWrapper = {
+    marginTop: "auto",
+  };
+
+  const bottomButton = {
+    width: "100%",
+    padding: "14px 18px",
+    borderRadius: "999px",
+    border: "none",
+    cursor: "pointer",
     fontSize: "15px",
     fontWeight: 600,
-    border: "1px solid rgba(255,255,255,0.06)",
-  };
-
-  const navButtons = {
-    display: "flex",
-    gap: "12px",
-    marginTop: "12px",
-  };
-
-  const navButton = {
-    padding: "8px 16px",
-    borderRadius: "12px",
-    background: "rgba(255,255,255,0.06)",
-    border: "1px solid rgba(255,255,255,0.1)",
+    background: "linear-gradient(90deg, #22d3ee, #6366f1)",
     color: "#f9fafb",
-    cursor: "pointer",
-    fontSize: "14px",
+    boxShadow: "0 16px 40px rgba(37,99,235,0.7)",
   };
+
+  function getPillarValue(id) {
+    if (!latest) return null;
+    const num = Number(latest[id]);
+    if (!Number.isFinite(num)) return null;
+    return Math.max(0, Math.min(10, num));
+  }
+
+  function getPillarGradient(id) {
+    switch (id) {
+      case "emotional":
+        return "linear-gradient(180deg, #a855f7, #3b82f6)";
+      case "physical":
+        return "linear-gradient(180deg, #3b82f6, #22d3ee)";
+      case "spiritual":
+        return "linear-gradient(180deg, #22d3ee, #8b5cf6)";
+      case "financial":
+        return "linear-gradient(180deg, #facc15, #22c55e)";
+      case "digital":
+      default:
+        return "linear-gradient(180deg, #38bdf8, #6366f1)";
+    }
+  }
 
   return (
     <div style={container}>
-      <h2 style={{ fontSize: "22px", fontWeight: 700, marginBottom: "16px" }}>
-        Welcome back
-      </h2>
+      <header>
+        <h1 style={headerTitle}>Home</h1>
+        <p style={headerSubtitle}>
+          How do you feel today, {userName || "there"}?
+        </p>
+      </header>
 
-      {/* Wellness Index Card */}
-      <div style={introBox}>
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <div>
-            <p style={{ opacity: 0.8, fontSize: "13px", marginBottom: "4px" }}>
-              WELLNESS INDEX
-            </p>
-
-            <p style={{ fontSize: "20px", fontWeight: 600, marginBottom: 4 }}>
-              Today
-            </p>
-
-            <p style={{ opacity: 0.7, fontSize: "14px", maxWidth: "260px" }}>
-              Each check-in updates your Wellness Index and your four pillars.
-            </p>
-
-            <div style={navButtons}>
-              <button style={navButton} onClick={() => navigate("/check-in")}>
-                Check-In
-              </button>
-              <button style={navButton} onClick={() => navigate("/journal")}>
-                Journal
-              </button>
-              <button
-                style={navButton}
-                onClick={() => navigate("/cycle-tracking")}
-              >
-                Cycle
-              </button>
+      {/* Wellness Index ball */}
+      <div style={ballWrapper}>
+        <div style={ballOuter}>
+          <div style={ballInner}>
+            <div style={ballNumber}>
+              {indexValue !== null ? indexValue : "—"}
             </div>
-          </div>
-
-          <div style={indexCircleWrapper}>
-            <div style={indexCircle}></div>
-            <div style={indexText}>{`${indexValue}%`}</div>
           </div>
         </div>
       </div>
 
-      {/* Pillars Section */}
-      <p style={sectionTitle}>Today&apos;s pillars</p>
+      {/* Label outside the circle */}
+      <div style={ballLabelOutside}>WELLNESS INDEX</div>
 
-      <div style={{ display: "flex", flexWrap: "wrap" }}>
-        <PillarCard
-          title="Emotional"
-          description="Mood, stress, resilience, and how your inner world feels today."
-          value={latest?.emotional ?? 0}
-          gradient={CARD_GRADIENTS.emotional}
-        />
+      {/* Pillars */}
+      <section style={pillarsRow}>
+        {PILLARS.map((pillar) => {
+          const val = getPillarValue(pillar.id);
+          const heightPercent = val ? (val / 10) * 100 : 0;
 
-        <PillarCard
-          title="Physical"
-          description="Energy, movement, rest, and how your body feels overall."
-          value={latest?.physical ?? 0}
-          gradient={CARD_GRADIENTS.physical}
-        />
+          return (
+            <button
+              key={pillar.id}
+              type="button"
+              onClick={() => navigate(`/pillar/${pillar.id}`)}
+              style={{
+                ...tubeWrapper,
+                background: "none",
+                border: "none",
+                padding: 0,
+              }}
+            >
+              <div style={tubeShell}>
+                <div
+                  style={{
+                    width: "100%",
+                    height: `${heightPercent}%`,
+                    borderRadius: 9999,
+                    background: getPillarGradient(pillar.id),
+                    transition: "height 0.3s ease-out",
+                  }}
+                />
+              </div>
+              <span style={tubeLabel}>{pillar.label}</span>
+            </button>
+          );
+        })}
+      </section>
 
-        <PillarCard
-          title="Spiritual"
-          description="Connection, meaning, and whatever 'bigger than me' looks like to you."
-          value={latest?.spiritual ?? 0}
-          gradient={CARD_GRADIENTS.spiritual}
-        />
-
-        <PillarCard
-          title="Financial"
-          description="Stability, control, and confidence with money and obligations."
-          value={latest?.financial ?? 0}
-          gradient={CARD_GRADIENTS.financial}
-        />
+      {/* Start check-in button */}
+      <div style={bottomButtonWrapper}>
+        <button
+          type="button"
+          style={bottomButton}
+          onClick={() => navigate("/check-in")}
+        >
+          Start today&apos;s check-in
+        </button>
       </div>
     </div>
   );

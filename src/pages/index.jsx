@@ -1,11 +1,14 @@
 // src/pages/Insights.jsx
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-const STORAGE_KEY = "resonifi_checkins_v1";
+const HISTORY_KEY = "resonifi_checkins_v1";
+// Same key used in DailyCheckinPage for cycle info
+const CYCLE_LAST_START_KEY = "resonifi_cycle_last_period_start";
 
 function loadEntries() {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(HISTORY_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
@@ -15,77 +18,33 @@ function loadEntries() {
   }
 }
 
-function computeStats(entries) {
-  if (!entries.length) {
-    return {
-      averages: null,
-      strongest: null,
-      softest: null,
-      biggestChange: null,
-    };
-  }
+// Compute averages per pillar (1–10), handling missing values gracefully
+function computeAverages(entries) {
+  const keys = ["emotional", "physical", "spiritual", "financial", "digital"];
+  const sums = { emotional: 0, physical: 0, spiritual: 0, financial: 0, digital: 0 };
+  const counts = { emotional: 0, physical: 0, spiritual: 0, financial: 0, digital: 0 };
 
-  let emoSum = 0,
-    physSum = 0,
-    spirSum = 0,
-    finSum = 0,
-    wellSum = 0;
-
-  entries.forEach((e) => {
-    const p = e.pillars || {};
-    emoSum += Number(p.emotional ?? 0);
-    physSum += Number(p.physical ?? 0);
-    spirSum += Number(p.spiritual ?? 0);
-    finSum += Number(p.financial ?? 0);
-    wellSum += Number(e.wellnessIndex ?? 0);
-  });
-
-  const count = entries.length;
-
-  const averages = {
-    emotional: emoSum / count,
-    physical: physSum / count,
-    spiritual: spirSum / count,
-    financial: finSum / count,
-    wellness: wellSum / count,
-  };
-
-  // strongest / softest pillar by average
-  const pillarList = [
-    { key: "emotional", label: "Emotional", value: averages.emotional },
-    { key: "physical", label: "Physical", value: averages.physical },
-    { key: "spiritual", label: "Spiritual", value: averages.spiritual },
-    { key: "financial", label: "Financial", value: averages.financial },
-  ];
-
-  let strongest = pillarList[0];
-  let softest = pillarList[0];
-
-  pillarList.forEach((p) => {
-    if (p.value > strongest.value) strongest = p;
-    if (p.value < softest.value) softest = p;
-  });
-
-  // biggest change since last check-in (compared to previous one)
-  let biggestChange = null;
-  if (entries.length >= 2) {
-    const last = entries[entries.length - 1];
-    const prev = entries[entries.length - 2];
-
-    const deltas = pillarList.map((p) => {
-      const lastVal = Number(last.pillars?.[p.key] ?? 0);
-      const prevVal = Number(prev.pillars?.[p.key] ?? 0);
-      return { ...p, delta: lastVal - prevVal };
+  entries.forEach((entry) => {
+    keys.forEach((key) => {
+      const raw = entry[key];
+      const num = Number(raw);
+      if (Number.isFinite(num) && num > 0) {
+        sums[key] += num;
+        counts[key] += 1;
+      }
     });
+  });
 
-    // pick the largest absolute change
-    biggestChange = deltas.reduce((best, current) => {
-      if (!best) return current;
-      return Math.abs(current.delta) > Math.abs(best.delta) ? current : best;
-    }, null);
-  }
+  const averages = {};
+  keys.forEach((key) => {
+    if (counts[key] > 0) {
+      averages[key] = sums[key] / counts[key];
+    } else {
+      averages[key] = null;
+    }
+  });
 
-  return { averages, strongest, softest, biggestChange };
+  return averages;
 }
 
 function formatDate(ts) {
@@ -99,230 +58,262 @@ function formatDate(ts) {
   });
 }
 
-function StatCard({ title, value, description }) {
+function PillarCard({ label, value }) {
+  const avg = typeof value === "number" ? value : null;
+  const display = avg !== null ? avg.toFixed(1) : "—";
+  const percent = avg !== null ? Math.max(0, Math.min(100, (avg / 10) * 100)) : 0;
+
   return (
-    <section
+    <div
       style={{
-        padding: "1rem",
-        borderRadius: "1rem",
-        background: "rgba(255,255,255,0.05)",
-        minWidth: 0,
+        padding: "14px 16px",
+        borderRadius: "16px",
+        background: "rgba(15,23,42,0.9)",
+        border: "1px solid rgba(148,163,184,0.45)",
+        boxShadow: "0 4px 18px rgba(15,23,42,0.9)",
       }}
     >
-      <h3 style={{ fontSize: "0.85rem", margin: "0 0 0.4rem" }}>{title}</h3>
-      <div style={{ fontSize: "1.4rem", fontWeight: 600, marginBottom: "0.15rem" }}>
-        {value?.toFixed(1) ?? "—"}
-        <span style={{ fontSize: "0.8rem", opacity: 0.7 }}>/10</span>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "baseline",
+          marginBottom: "6px",
+        }}
+      >
+        <p
+          style={{
+            margin: 0,
+            fontSize: "13px",
+            fontWeight: 500,
+            color: "#e2e8f0",
+          }}
+        >
+          {label}
+        </p>
+        <p
+          style={{
+            margin: 0,
+            fontSize: "14px",
+            fontWeight: 600,
+            color: "#f9fafb",
+          }}
+        >
+          {display}
+          <span style={{ fontSize: "11px", opacity: 0.7 }}> / 10</span>
+        </p>
       </div>
-      <p style={{ fontSize: "0.8rem", opacity: 0.7, margin: 0 }}>{description}</p>
-    </section>
+      <div
+        style={{
+          marginTop: "6px",
+          width: "100%",
+          height: "6px",
+          borderRadius: "999px",
+          background: "rgba(30,64,175,0.7)",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            width: `${percent}%`,
+            height: "100%",
+            borderRadius: "999px",
+            background:
+              "linear-gradient(90deg, #22d3ee, #0ea5e9, #6366f1)",
+            boxShadow: "0 0 12px rgba(56,189,248,0.8)",
+            transition: "width 0.3s ease-out",
+          }}
+        />
+      </div>
+    </div>
   );
 }
 
 export default function Insights() {
+  const navigate = useNavigate();
   const [entries, setEntries] = useState([]);
-  const [stats, setStats] = useState({
-    averages: null,
-    strongest: null,
-    softest: null,
-    biggestChange: null,
+  const [averages, setAverages] = useState({
+    emotional: null,
+    physical: null,
+    spiritual: null,
+    financial: null,
+    digital: null,
   });
+  const [lastPeriodStart, setLastPeriodStart] = useState(null);
 
   useEffect(() => {
     const loaded = loadEntries();
     setEntries(loaded);
-    setStats(computeStats(loaded));
+    setAverages(computeAverages(loaded));
+
+    // Load cycle info for "Last period start"
+    try {
+      const rawCycle = window.localStorage.getItem(CYCLE_LAST_START_KEY);
+      if (rawCycle) {
+        const parsed = JSON.parse(rawCycle);
+        if (typeof parsed === "string") {
+          setLastPeriodStart(parsed);
+        } else if (parsed && typeof parsed === "object" && parsed.lastStart) {
+          setLastPeriodStart(parsed.lastStart);
+        }
+      } else if (loaded.length > 0) {
+        // Fallback: look at latest entry if it has lastPeriodStart
+        const latest = loaded[0]; // assuming newest first in our history
+        if (latest.lastPeriodStart) {
+          setLastPeriodStart(latest.lastPeriodStart);
+        }
+      }
+    } catch (err) {
+      console.error("Error loading cycle info in Insights:", err);
+    }
   }, []);
 
-  const { averages, strongest, softest, biggestChange } = stats;
-
   const hasData = entries.length > 0;
-  const latest = hasData ? entries[entries.length - 1] : null;
+  const recentEntries = hasData ? [...entries].slice(0, 5) : [];
 
-  const recent = hasData ? [...entries].slice(-7).reverse() : [];
+  const page = {
+    backgroundColor: "#020617",
+    color: "#f9fafb",
+    minHeight: "100vh",
+    padding: "24px 16px 90px",
+    boxSizing: "border-box",
+    fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+    maxWidth: "960px",
+    margin: "0 auto",
+  };
+
+  const headerTitle = {
+    fontSize: "20px",
+    fontWeight: 600,
+    marginBottom: "4px",
+  };
+
+  const headerSubtitle = {
+    fontSize: "13px",
+    color: "#94a3b8",
+    marginBottom: "18px",
+  };
+
+  const pillarList = {
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+    marginBottom: "20px",
+  };
+
+  const cycleCard = {
+    marginTop: "8px",
+    padding: "14px 16px",
+    borderRadius: "16px",
+    background:
+      "linear-gradient(135deg, rgba(56,189,248,0.12), rgba(37,99,235,0.2))",
+    border: "1px solid rgba(125,211,252,0.5)",
+    boxShadow: "0 0 22px rgba(56,189,248,0.35)",
+    fontSize: "13px",
+    color: "#e0f2fe",
+  };
+
+  const cycleHeader = {
+    fontSize: "13px",
+    fontWeight: 600,
+    marginBottom: "6px",
+  };
+
+  const cycleButton = {
+    marginTop: "10px",
+    padding: "8px 12px",
+    borderRadius: "999px",
+    border: "1px solid rgba(248,250,252,0.7)",
+    backgroundColor: "rgba(15,23,42,0.2)",
+    color: "#f9fafb",
+    fontSize: "12px",
+    fontWeight: 500,
+    cursor: "pointer",
+  };
+
+  const recentSection = {
+    marginTop: "24px",
+  };
+
+  const recentTitle = {
+    fontSize: "14px",
+    fontWeight: 600,
+    marginBottom: "8px",
+  };
+
+  const recentPlaceholder = {
+    fontSize: "12px",
+    color: "#9ca3af",
+  };
 
   return (
-    <div style={{ padding: "1.5rem 1rem", maxWidth: "950px", margin: "0 auto" }}>
-      {/* Header */}
-      <header style={{ marginBottom: "1.5rem" }}>
-        <h1 style={{ fontSize: "1.4rem", marginBottom: "0.35rem" }}>Insights</h1>
-        <p style={{ fontSize: "0.9rem", opacity: 0.75, maxWidth: "520px" }}>
-          See how your check-ins are adding up over time. These insights are here
-          to help you notice patterns, not judge your scores.
+    <div style={page}>
+      <header>
+        <h1 style={headerTitle}>Insights</h1>
+        <p style={headerSubtitle}>
+          A quick snapshot of how your pillars have been feeling over time.
+          These numbers are here to help you notice patterns, not judge your scores.
         </p>
       </header>
 
-      {/* Average cards */}
-      <section
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "0.9rem",
-          marginBottom: "1.5rem",
-        }}
-      >
-        <StatCard
-          title="Emotional (avg)"
-          value={averages?.emotional}
-          description="How your inner world has felt on average."
-        />
-        <StatCard
-          title="Physical (avg)"
-          value={averages?.physical}
-          description="Your average sense of energy and body wellbeing."
-        />
-        <StatCard
-          title="Spiritual (avg)"
-          value={averages?.spiritual}
-          description="Your average feeling of meaning and connection."
-        />
-        <StatCard
-          title="Financial (avg)"
-          value={averages?.financial}
-          description="How steady money and obligations have felt."
-        />
+      {/* Pillar average cards (scrollable page — 3 above fold, 2 below) */}
+      <section style={pillarList}>
+        <PillarCard label="Emotional" value={averages.emotional} />
+        <PillarCard label="Physical" value={averages.physical} />
+        <PillarCard label="Spiritual" value={averages.spiritual} />
+        <PillarCard label="Financial" value={averages.financial} />
+        <PillarCard label="Digital" value={averages.digital} />
       </section>
 
-      {/* Narrative summary */}
-      <section
-        style={{
-          marginBottom: "1.5rem",
-          padding: "1.15rem",
-          borderRadius: "1rem",
-          background: "rgba(255,255,255,0.05)",
-          fontSize: "0.9rem",
-        }}
-      >
-        {!hasData && (
-          <p style={{ margin: 0, opacity: 0.8 }}>
-            Once you’ve done a few Daily Check-Ins, this page will highlight
-            which areas feel strongest, which might need extra care, and how your
-            last check-in compares to the one before it.
-          </p>
-        )}
-
-        {hasData && (
-          <>
-            <p style={{ marginTop: 0, marginBottom: "0.6rem", opacity: 0.9 }}>
-              Based on your check-ins so far, your{" "}
-              <strong>strongest pillar</strong> has been{" "}
-              <strong>{strongest?.label}</strong>{" "}
-              ({strongest?.value.toFixed(1)}/10), while the area that may need the
-              most care is <strong>{softest?.label}</strong>{" "}
-              ({softest?.value.toFixed(1)}/10).
-            </p>
-
-            {biggestChange && Math.abs(biggestChange.delta) >= 0.3 && (
-              <p style={{ margin: 0, opacity: 0.85 }}>
-                Since your last check-in on{" "}
-                <strong>{formatDate(latest?.timestamp)}</strong>, the biggest
-                shift has been in your{" "}
-                <strong>{biggestChange.label}</strong> pillar, which is{" "}
-                {biggestChange.delta > 0 ? "up" : "down"} by{" "}
-                {Math.abs(biggestChange.delta).toFixed(1)} points. That might be
-                a helpful place to pause and reflect.
-              </p>
-            )}
-
-            {biggestChange && Math.abs(biggestChange.delta) < 0.3 && (
-              <p style={{ margin: 0, opacity: 0.85 }}>
-                Your most recent check-in on{" "}
-                <strong>{formatDate(latest?.timestamp)}</strong> is fairly close
-                to the previous one across all pillars. That consistency can be a
-                sign of a stable phase — keep checking in to notice the smaller
-                shifts.
-              </p>
-            )}
-          </>
-        )}
-      </section>
-
-      {/* Recent check-ins (compact) */}
-      <section>
-        <h2
-          style={{
-            fontSize: "1rem",
-            marginBottom: "0.75rem",
-            opacity: 0.9,
-          }}
+      {/* Cycle tracking card */}
+      <section style={cycleCard}>
+        <div style={cycleHeader}>Cycle tracking</div>
+        <div>
+          Last period start:{" "}
+          <strong>
+            {lastPeriodStart ? lastPeriodStart : "Not set"}
+          </strong>
+        </div>
+        <button
+          type="button"
+          style={cycleButton}
+          onClick={() => navigate("/cycle-tracking")}
         >
-          Recent check-ins
-        </h2>
+          Open cycle tracking
+        </button>
+      </section>
 
+      {/* Recent check-ins placeholder */}
+      <section style={recentSection}>
+        <h2 style={recentTitle}>Recent check-ins</h2>
         {!hasData && (
-          <p style={{ fontSize: "0.85rem", opacity: 0.75 }}>
-            You haven’t logged any check-ins yet. Start with a Daily Check-In and
-            this section will show a simple history of how things have been
-            feeling over time.
+          <p style={recentPlaceholder}>
+            Once you&apos;ve logged a few Daily Check-Ins, this section will
+            show a simple history of your most recent days.
           </p>
         )}
 
         {hasData && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.65rem" }}>
-            {recent.map((entry, idx) => {
-              const p = entry.pillars || {};
-              return (
-                <div
-                  key={entry.timestamp ?? idx}
-                  style={{
-                    padding: "0.9rem 1rem",
-                    borderRadius: "0.9rem",
-                    background: "rgba(255,255,255,0.03)",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "0.35rem",
-                    fontSize: "0.8rem",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "baseline",
-                      gap: "0.75rem",
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <div style={{ fontWeight: 600 }}>
-                      {formatDate(entry.timestamp) || "Unknown date"}
-                    </div>
-                    <div style={{ opacity: 0.8 }}>
-                      Wellness Index:{" "}
-                      <strong>{Number(entry.wellnessIndex ?? 0).toFixed(1)}/10</strong>
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: "0.75rem",
-                      opacity: 0.8,
-                    }}
-                  >
-                    <span>Emotional {Number(p.emotional ?? 0).toFixed(1)}/10</span>
-                    <span>Physical {Number(p.physical ?? 0).toFixed(1)}/10</span>
-                    <span>Spiritual {Number(p.spiritual ?? 0).toFixed(1)}/10</span>
-                    <span>Financial {Number(p.financial ?? 0).toFixed(1)}/10</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <ul
+            style={{
+              listStyle: "none",
+              padding: 0,
+              margin: 0,
+              display: "flex",
+              flexDirection: "column",
+              gap: "6px",
+              fontSize: "12px",
+              color: "#e5e7eb",
+            }}
+          >
+            {recentEntries.map((entry, idx) => (
+              <li key={entry.timestamp ?? idx}>
+                {formatDate(entry.timestamp) || "Unknown date"}
+              </li>
+            ))}
+          </ul>
         )}
       </section>
-
-      {/* Footer trademark */}
-      <div
-        style={{
-          textAlign: "center",
-          marginTop: "2.5rem",
-          opacity: 0.6,
-          fontSize: "0.75rem",
-        }}
-      >
-        Resonifi Wellness Inc.™
-      </div>
     </div>
   );
 }

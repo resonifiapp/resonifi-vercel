@@ -3,6 +3,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
+const NAME_KEY = "resonifi_user_name";
+const PHOTO_KEY = "resonifi_user_photo";
+
 export default function Account() {
   const navigate = useNavigate();
 
@@ -126,14 +129,90 @@ export default function Account() {
     color: "#cbd5f5",
   };
 
-  // --- Cycle tracking toggle state (local-only) ---
+  // --- Profile styles ---
+  const profileRow = {
+    display: "flex",
+    alignItems: "center",
+    gap: "16px",
+  };
+
+  const avatarOuter = {
+    width: 64,
+    height: 64,
+    borderRadius: "999px",
+    background:
+      "radial-gradient(circle at 30% 0%, #22d3ee, #6366f1 55%, #020617)",
+    boxShadow: "0 0 24px rgba(56,189,248,0.9)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+    flexShrink: 0,
+  };
+
+  const avatarImg = {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+  };
+
+  const avatarInitial = {
+    fontSize: "24px",
+    fontWeight: 600,
+    color: "#e5e7eb",
+  };
+
+  const profileTextCol = {
+    flex: 1,
+  };
+
+  const nameInput = {
+    marginTop: "6px",
+    width: "100%",
+    padding: "8px 10px",
+    borderRadius: "999px",
+    border: "1px solid #1e293b",
+    backgroundColor: "#020617",
+    color: "#e5e7eb",
+    fontSize: "13px",
+    outline: "none",
+  };
+
+  const uploadButton = {
+    marginTop: "8px",
+    padding: "6px 12px",
+    borderRadius: "999px",
+    border: "1px solid rgba(148,163,184,0.8)",
+    backgroundColor: "rgba(15,23,42,0.9)",
+    color: "#e5e7eb",
+    fontSize: "12px",
+    fontWeight: 500,
+    cursor: "pointer",
+  };
+
+  // --- State ---
   const [cycleEnabled, setCycleEnabled] = useState(false);
+  const [userName, setUserName] = useState("");
+  const [photoDataUrl, setPhotoDataUrl] = useState(null);
 
   useEffect(() => {
     try {
-      const raw = window.localStorage.getItem("resonifi_cycle_enabled");
-      if (raw !== null) {
-        setCycleEnabled(raw === "true");
+      // Name
+      const storedName = window.localStorage.getItem(NAME_KEY);
+      if (storedName) {
+        setUserName(storedName);
+      }
+
+      // Photo
+      const storedPhoto = window.localStorage.getItem(PHOTO_KEY);
+      if (storedPhoto) {
+        setPhotoDataUrl(storedPhoto);
+      }
+
+      // Cycle toggle
+      const rawCycle = window.localStorage.getItem("resonifi_cycle_enabled");
+      if (rawCycle !== null) {
+        setCycleEnabled(rawCycle === "true");
       }
     } catch {
       // ignore
@@ -152,6 +231,40 @@ export default function Account() {
     }
   }
 
+  function handleNameChange(e) {
+    const value = e.target.value;
+    setUserName(value);
+    try {
+      window.localStorage.setItem(NAME_KEY, value);
+    } catch {
+      // ignore
+    }
+  }
+
+  function handlePhotoChange(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result;
+      if (typeof result === "string") {
+        setPhotoDataUrl(result);
+        try {
+          window.localStorage.setItem(PHOTO_KEY, result);
+        } catch {
+          // ignore
+        }
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  const initialLetter =
+    userName && userName.trim().length > 0
+      ? userName.trim().charAt(0).toUpperCase()
+      : "•";
+
   return (
     <div style={page}>
       <h1 style={title}>Account</h1>
@@ -159,6 +272,48 @@ export default function Account() {
         Basic settings for how Resonifi works on <strong>this device</strong>.
         No login, no profile to manage — just the knobs that actually matter.
       </p>
+
+      {/* Profile card: name + photo */}
+      <section style={card}>
+        <div style={profileRow}>
+          <div style={avatarOuter}>
+            {photoDataUrl ? (
+              <img src={photoDataUrl} alt="Profile" style={avatarImg} />
+            ) : (
+              <span style={avatarInitial}>{initialLetter}</span>
+            )}
+          </div>
+          <div style={profileTextCol}>
+            <p style={cardTitle}>Your profile on this device</p>
+            <p style={{ ...cardBody, marginTop: 2 }}>
+              Add a name and photo so your Home screen feels a little more
+              like you. This stays on this device only.
+            </p>
+            <input
+              type="text"
+              value={userName}
+              onChange={handleNameChange}
+              placeholder="Add your name"
+              style={nameInput}
+            />
+            <div style={{ marginTop: "8px" }}>
+              <label style={uploadButton}>
+                Choose photo
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoChange}
+                  style={{ display: "none" }}
+                />
+              </label>
+            </div>
+            <p style={small}>
+              Your name and photo are stored locally in your browser&apos;s
+              storage. Clearing site data will remove them.
+            </p>
+          </div>
+        </div>
+      </section>
 
       {/* Device profile */}
       <section style={card}>
@@ -262,7 +417,7 @@ export default function Account() {
             account, and your data is not synced to a cloud service.
           </li>
           <li>
-            You&apos;re always free to export or delete your data in future
+            You&aposre always free to export or delete your data in future
             versions when those tools ship.
           </li>
         </ul>

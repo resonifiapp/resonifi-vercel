@@ -67,60 +67,40 @@ function computeSummary(lastStartStr, lastEndStr, length) {
   const periodDays = explicitEnd
     ? Math.max(
         1,
-        Math.round(
-          (explicitEnd.getTime() - start.getTime()) / MS_PER_DAY
-        ) + 1
+        Math.round((explicitEnd.getTime() - start.getTime()) / MS_PER_DAY) + 1
       )
     : DEFAULT_PERIOD_DAYS;
 
   const lastStart = start;
   const lastEnd = explicitEnd
     ? explicitEnd
-    : atMidnight(
-        new Date(start.getTime() + (DEFAULT_PERIOD_DAYS - 1) * MS_PER_DAY)
-      );
+    : atMidnight(new Date(start.getTime() + (DEFAULT_PERIOD_DAYS - 1) * MS_PER_DAY));
 
   const today = atMidnight(new Date());
   const diffFromStart = today.getTime() - start.getTime();
 
   const dayOfCycle =
-    diffFromStart < 0
-      ? 1
-      : (Math.floor(diffFromStart / MS_PER_DAY) % cycleLen) + 1;
+    diffFromStart < 0 ? 1 : (Math.floor(diffFromStart / MS_PER_DAY) % cycleLen) + 1;
 
   const cyclesPassed =
-    diffFromStart > 0
-      ? Math.floor(diffFromStart / (cycleLen * MS_PER_DAY))
-      : 0;
+    diffFromStart > 0 ? Math.floor(diffFromStart / (cycleLen * MS_PER_DAY)) : 0;
 
-  // Next period start based on this pattern
   let nextStart = atMidnight(
     new Date(start.getTime() + (cyclesPassed + 1) * cycleLen * MS_PER_DAY)
   );
   if (nextStart.getTime() <= today.getTime()) {
-    nextStart = atMidnight(
-      new Date(nextStart.getTime() + cycleLen * MS_PER_DAY)
-    );
+    nextStart = atMidnight(new Date(nextStart.getTime() + cycleLen * MS_PER_DAY));
   }
   const nextEnd = atMidnight(
     new Date(nextStart.getTime() + (periodDays - 1) * MS_PER_DAY)
   );
 
-  // Ovulation & windows (estimated)
-  const ovulation = atMidnight(
-    new Date(nextStart.getTime() - 14 * MS_PER_DAY)
-  );
-  const fertileStart = atMidnight(
-    new Date(ovulation.getTime() - 4 * MS_PER_DAY)
-  );
+  const ovulation = atMidnight(new Date(nextStart.getTime() - 14 * MS_PER_DAY));
+  const fertileStart = atMidnight(new Date(ovulation.getTime() - 4 * MS_PER_DAY));
   const fertileEnd = ovulation;
 
-  const pmsStart = atMidnight(
-    new Date(nextStart.getTime() - 7 * MS_PER_DAY)
-  );
-  const pmsEnd = atMidnight(
-    new Date(nextStart.getTime() - 1 * MS_PER_DAY)
-  );
+  const pmsStart = atMidnight(new Date(nextStart.getTime() - 7 * MS_PER_DAY));
+  const pmsEnd = atMidnight(new Date(nextStart.getTime() - 1 * MS_PER_DAY));
 
   return {
     length: cycleLen,
@@ -146,7 +126,7 @@ function isInRange(date, start, end) {
 
 function buildMonthMatrix(year, month) {
   const firstDay = new Date(year, month, 1);
-  const firstWeekday = firstDay.getDay(); // 0–6
+  const firstWeekday = firstDay.getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
   const rows = [];
@@ -155,11 +135,8 @@ function buildMonthMatrix(year, month) {
   while (current <= daysInMonth) {
     const week = [];
     for (let i = 0; i < 7; i++) {
-      if (current < 1 || current > daysInMonth) {
-        week.push(null);
-      } else {
-        week.push(current);
-      }
+      if (current < 1 || current > daysInMonth) week.push(null);
+      else week.push(current);
       current++;
     }
     rows.push(week);
@@ -196,9 +173,7 @@ function describeDate(date, summary) {
 
   if (isFertile) {
     tags.push("fertile");
-    pieces.push(
-      "This day falls in your estimated fertile window (based on your cycle length)."
-    );
+    pieces.push("This day falls in your estimated fertile window.");
   }
 
   const isOvulation =
@@ -207,9 +182,7 @@ function describeDate(date, summary) {
 
   if (isOvulation) {
     tags.push("ovulation");
-    pieces.push(
-      "This is your estimated ovulation day (this is an estimate, not a diagnostic)."
-    );
+    pieces.push("This is your estimated ovulation day.");
   }
 
   const isPms =
@@ -218,15 +191,11 @@ function describeDate(date, summary) {
 
   if (isPms) {
     tags.push("pms");
-    pieces.push(
-      "This day is in your estimated PMS window leading into your next period."
-    );
+    pieces.push("This day is in your estimated PMS window.");
   }
 
   if (!tags.length) {
-    pieces.push(
-      "This day is not in a predicted period, fertile window, ovulation, or PMS range."
-    );
+    pieces.push("This day is not in a predicted window.");
   }
 
   return {
@@ -236,7 +205,7 @@ function describeDate(date, summary) {
   };
 }
 
-/* ---------- Month calendar component ---------- */
+/* ---------- Calendar Component ---------- */
 
 function MonthCalendar({ year, month, summary, selectedDateKey, onDayClick }) {
   const label = new Date(year, month, 1).toLocaleString(undefined, {
@@ -331,8 +300,7 @@ function MonthCalendar({ year, month, summary, selectedDateKey, onDayClick }) {
               border = "rgba(191,219,254,0.9)";
               color = "#020617";
             } else if (isOvulation) {
-              bg =
-                "radial-gradient(circle at 30% 20%, #facc15, #f97316 70%)";
+              bg = "radial-gradient(circle at 30% 20%, #facc15, #f97316 70%)";
               border = "rgba(253,224,71,0.9)";
               color = "#0f172a";
             } else if (isFertile) {
@@ -378,7 +346,7 @@ function MonthCalendar({ year, month, summary, selectedDateKey, onDayClick }) {
   );
 }
 
-/* ---------- Main page ---------- */
+/* ---------- Main Component ---------- */
 
 export default function CycleTracking() {
   const [lastStart, setLastStart] = useState("");
@@ -431,9 +399,7 @@ export default function CycleTracking() {
   function handleDayClick(dateKey) {
     setSelectedDateKey(dateKey);
     if (!summary) {
-      setSelectedInfo(
-        describeDate(new Date(`${dateKey}T00:00:00`), null)
-      );
+      setSelectedInfo(describeDate(new Date(`${dateKey}T00:00:00`), null));
       return;
     }
     const d = new Date(`${dateKey}T00:00:00`);
@@ -444,9 +410,7 @@ export default function CycleTracking() {
     ? new Date(`${selectedDateKey}T00:00:00`)
     : null;
   const selectedNote =
-    selectedDateKey && notes[selectedDateKey]
-      ? notes[selectedDateKey]
-      : "";
+    selectedDateKey && notes[selectedDateKey] ? notes[selectedDateKey] : "";
 
   function handleNoteChange(e) {
     const value = e.target.value;
@@ -458,20 +422,15 @@ export default function CycleTracking() {
     });
   }
 
-  // Build 6-month upcoming periods
   const upcoming = useMemo(() => {
     if (!summary) return [];
     const list = [];
     for (let i = 0; i < 6; i++) {
       const start = atMidnight(
-        new Date(
-          summary.nextStart.getTime() + i * summary.length * MS_PER_DAY
-        )
+        new Date(summary.nextStart.getTime() + i * summary.length * MS_PER_DAY)
       );
       const end = atMidnight(
-        new Date(
-          start.getTime() + (summary.periodDays - 1) * MS_PER_DAY
-        )
+        new Date(start.getTime() + (summary.periodDays - 1) * MS_PER_DAY)
       );
       list.push({ start, end });
     }
@@ -496,7 +455,6 @@ export default function CycleTracking() {
         Cycle tracking
       </h1>
 
-      {/* BRAND + PRIVACY (pink) */}
       <p
         style={{
           color: "#f472b6",
@@ -507,11 +465,9 @@ export default function CycleTracking() {
         }}
       >
         Resonifi Wellness Inc.™ is a Canadian company. Your reproductive and
-        cycle data is stored only on this device and is never sent, saved,
-        sold, or shared. Ever.
+        cycle data is stored only on this device and is never sent, saved, or shared.
       </p>
 
-      {/* EXPECTED PERIOD FIRST */}
       <p
         style={{
           fontSize: "0.95rem",
@@ -520,8 +476,7 @@ export default function CycleTracking() {
       >
         {summary ? (
           <>
-            Next expected period:&nbsp;
-            <strong>{nextPeriodText}</strong>
+            Next expected period: <strong>{nextPeriodText}</strong>
           </>
         ) : (
           "Add your last period dates below to see your next expected period."
@@ -544,7 +499,6 @@ export default function CycleTracking() {
         </p>
       )}
 
-      {/* MAIN CARD: inputs + snapshot */}
       <section
         style={{
           background: "#111827",
@@ -562,7 +516,6 @@ export default function CycleTracking() {
             gap: "1.5rem",
           }}
         >
-          {/* LEFT: inputs */}
           <div>
             <p
               style={{
@@ -571,8 +524,7 @@ export default function CycleTracking() {
                 marginBottom: "0.8rem",
               }}
             >
-              Resonifi keeps all of this on your device only. Update it when
-              your cycle pattern changes.
+              Resonifi keeps all of this on your device only.
             </p>
 
             <div style={{ marginBottom: "0.9rem" }}>
@@ -603,15 +555,6 @@ export default function CycleTracking() {
                   textAlign: "center",
                 }}
               />
-              <p
-                style={{
-                  fontSize: "0.78rem",
-                  opacity: 0.6,
-                  marginTop: "0.25rem",
-                }}
-              >
-                Tap to pick a date — no typing needed.
-              </p>
             </div>
 
             <div style={{ marginBottom: "0.9rem" }}>
@@ -623,8 +566,7 @@ export default function CycleTracking() {
                   marginBottom: "0.3rem",
                 }}
               >
-                Last period end date{" "}
-                <span style={{ opacity: 0.6 }}>(optional)</span>
+                Last period end date <span style={{ opacity: 0.6 }}>(optional)</span>
               </label>
               <input
                 id="cycle-last-end"
@@ -643,16 +585,6 @@ export default function CycleTracking() {
                   textAlign: "center",
                 }}
               />
-              <p
-                style={{
-                  fontSize: "0.78rem",
-                  opacity: 0.65,
-                  marginTop: "0.25rem",
-                }}
-              >
-                If you skip this, we&apos;ll assume about {DEFAULT_PERIOD_DAYS}{" "}
-                days.
-              </p>
             </div>
 
             <div style={{ marginBottom: "1rem" }}>
@@ -681,7 +613,6 @@ export default function CycleTracking() {
                   border: "1px solid rgba(148,163,184,0.45)",
                   padding: "0.45rem 0.6rem",
                   fontSize: "0.9rem",
-                  appearance: "textfield",
                 }}
               />
             </div>
@@ -696,8 +627,7 @@ export default function CycleTracking() {
                 cursor: "pointer",
                 fontSize: "0.9rem",
                 fontWeight: 500,
-                background:
-                  "linear-gradient(90deg, #22c55e, #3b82f6, #8b5cf6)",
+                background: "linear-gradient(90deg, #22c55e, #3b82f6, #8b5cf6)",
                 color: "white",
                 boxShadow: "0 10px 30px rgba(56,189,248,0.45)",
               }}
@@ -717,7 +647,6 @@ export default function CycleTracking() {
             </div>
           </div>
 
-          {/* RIGHT: snapshot */}
           <div
             style={{
               background: "#020617",
@@ -738,8 +667,7 @@ export default function CycleTracking() {
 
             {!summary ? (
               <p style={{ fontSize: "0.9rem", opacity: 0.8 }}>
-                Once your dates are set, you&apos;ll see where you are in your
-                cycle and when your next period is likely to begin.
+                Once your dates are set, you'll see where you are in your cycle.
               </p>
             ) : (
               <>
@@ -752,6 +680,7 @@ export default function CycleTracking() {
                 >
                   Day {summary.dayOfCycle} of {summary.length}
                 </p>
+
                 <p
                   style={{
                     fontSize: "0.9rem",
@@ -761,11 +690,10 @@ export default function CycleTracking() {
                 >
                   Last period:{" "}
                   <strong>
-                    {formatDate(summary.lastStart)} –{" "}
-                    {formatDate(summary.lastEnd)}
-                  </strong>{" "}
-                  ({summary.periodDays} days)
+                    {formatDate(summary.lastStart)} – {formatDate(summary.lastEnd)}
+                  </strong>
                 </p>
+
                 <p
                   style={{
                     fontSize: "0.9rem",
@@ -775,30 +703,15 @@ export default function CycleTracking() {
                 >
                   Next expected period:{" "}
                   <strong>
-                    {formatDate(summary.nextStart)} –{" "}
-                    {formatDate(summary.nextEnd)}
+                    {formatDate(summary.nextStart)} – {formatDate(summary.nextEnd)}
                   </strong>
-                </p>
-                <p
-                  style={{
-                    fontSize: "0.78rem",
-                    opacity: 0.7,
-                  }}
-                >
-                  These are estimates to help you plan — they are not medical
-                  advice or a diagnostic tool.
                 </p>
 
                 <button
                   type="button"
                   onClick={() => {
                     const el = document.getElementById("cycle-calendar");
-                    if (el) {
-                      el.scrollIntoView({
-                        behavior: "smooth",
-                        block: "start",
-                      });
-                    }
+                    if (el) el.scrollIntoView({ behavior: "smooth" });
                   }}
                   style={{
                     marginTop: "0.75rem",
@@ -819,7 +732,6 @@ export default function CycleTracking() {
         </div>
       </section>
 
-      {/* CALENDAR SECTION */}
       <section id="cycle-calendar" style={{ marginBottom: "1.5rem" }}>
         <h2
           style={{
@@ -830,6 +742,7 @@ export default function CycleTracking() {
         >
           Two-month calendar
         </h2>
+
         <p
           style={{
             fontSize: "0.85rem",
@@ -837,13 +750,8 @@ export default function CycleTracking() {
             marginBottom: "0.9rem",
           }}
         >
-          Recent period days appear in{" "}
-          <span style={{ color: "#5eead4" }}>teal</span>, your next expected
-          period in <span style={{ color: "#c4b5fd" }}>purple</span>, your
-          estimated fertile window in{" "}
-          <span style={{ color: "#7dd3fc" }}>blue</span>, PMS window in{" "}
-          <span style={{ color: "#fb7185" }}>coral</span>, and ovulation day in{" "}
-          <span style={{ color: "#facc15" }}>gold</span>.
+          Recent period days appear in teal, next period in purple, fertile window
+          in blue, PMS in coral, and ovulation in gold.
         </p>
 
         <div
@@ -870,7 +778,6 @@ export default function CycleTracking() {
         </div>
       </section>
 
-      {/* DAY DETAILS + NOTES */}
       <section style={{ marginBottom: "1.5rem" }}>
         <h2
           style={{
@@ -884,8 +791,7 @@ export default function CycleTracking() {
 
         {!selectedDateKey ? (
           <p style={{ fontSize: "0.9rem", opacity: 0.75 }}>
-            Tap any day in the calendar above to see how it fits into your
-            cycle and add notes just for that day.
+            Tap any day in the calendar to see where it fits into your cycle.
           </p>
         ) : (
           <div
@@ -905,6 +811,7 @@ export default function CycleTracking() {
             >
               Selected date:
             </p>
+
             <p
               style={{
                 fontSize: "0.95rem",
@@ -937,12 +844,13 @@ export default function CycleTracking() {
             >
               Notes for this day (optional)
             </label>
+
             <textarea
               id="cycle-note"
               rows={3}
               value={selectedNote}
               onChange={handleNoteChange}
-              placeholder="Symptoms, mood, energy, anything you want to remember."
+              placeholder="Symptoms, mood, energy..."
               style={{
                 width: "100%",
                 background: "#020617",
@@ -954,6 +862,7 @@ export default function CycleTracking() {
                 resize: "vertical",
               }}
             />
+
             <p
               style={{
                 fontSize: "0.75rem",
@@ -967,7 +876,6 @@ export default function CycleTracking() {
         )}
       </section>
 
-      {/* UPCOMING PERIODS (6 MONTHS) */}
       <section>
         <h2
           style={{
@@ -978,10 +886,10 @@ export default function CycleTracking() {
         >
           Upcoming cycles (next 6 periods)
         </h2>
+
         {!summary ? (
           <p style={{ fontSize: "0.9rem", opacity: 0.75 }}>
-            Once your cycle details are set, you&apos;ll see a simple
-            six-month view of predicted periods here.
+            Once your cycle details are set, you'll see predictions here.
           </p>
         ) : (
           <ul
@@ -1002,12 +910,13 @@ export default function CycleTracking() {
                   opacity: 0.9,
                 }}
               >
-                <strong>Cycle {idx + 1}:</strong>{" "}
-                {formatDate(p.start)} – {formatDate(p.end)}
+                <strong>Cycle {idx + 1}:</strong> {formatDate(p.start)} –{" "}
+                {formatDate(p.end)}
               </li>
             ))}
           </ul>
         )}
+
         <p
           style={{
             fontSize: "0.75rem",
@@ -1015,8 +924,7 @@ export default function CycleTracking() {
             marginTop: "0.5rem",
           }}
         >
-          These dates are predictions based on the pattern you entered. They
-          are meant for planning and awareness, not as medical advice.
+          These dates are estimates and for planning only.
         </p>
       </section>
     </main>

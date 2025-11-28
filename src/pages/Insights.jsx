@@ -1,527 +1,587 @@
 // src/pages/Insights.jsx
-import React, { useEffect, useState } from "react";
 
-const STORAGE_KEY = "resonifi_checkins_v1";
+import React, { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+
+/* ---------- Constants ---------- */
+
+const HISTORY_KEY = "resonifi_checkins_v1";
+
+const PILLARS = [
+  { key: "emotional", label: "Emotional" },
+  { key: "physical", label: "Physical" },
+  { key: "spiritual", label: "Spiritual" },
+  { key: "financial", label: "Financial" },
+  { key: "digital", label: "Digital" },
+];
+
+/* ---------- Helpers ---------- */
+
+function parseDate(value) {
+  if (!value) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  return d;
+}
+
+function formatDate(value) {
+  const d = parseDate(value);
+  if (!d) return "Unknown date";
+  return d.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
 
 function loadEntries() {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(HISTORY_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed;
   } catch (err) {
-    console.error("Error reading check-ins for Insights:", err);
+    console.error("Error loading check-ins:", err);
     return [];
   }
 }
 
-function computeStats(entries) {
+function computeAverages(entries, daysWindow = 14) {
   if (!entries.length) {
     return {
-      averages: null,
-      strongest: null,
-      softest: null,
-      biggestChange: null,
+      avgIndex: null,
+      pillarAverages: {},
+      usedDays: 0,
+      recentEntries: [],
     };
   }
 
-  let emoSum = 0,
-    physSum = 0,
-    spirSum = 0,
-    finSum = 0,
-    wellSum = 0;
+  const now = new Date();
+  const cutoff = now.getTime() - daysWindow * 24 * 60 * 60 * 1000;
 
-  entries.forEach((e) => {
-    const p = e.pillars || {};
-    emoSum += Number(p.emotional ?? 0);
-    physSum += Number(p.physical ?? 0);
-    spirSum += Number(p.spiritual ?? 0);
-    finSum += Number(p.financial ?? 0);
-    wellSum += Number(e.wellnessIndex ?? 0);
+  const recent = entries.filter((e) => {
+    const d = parseDate(e.date || e.createdAt || e.timestamp);
+    if (!d) return false;
+    return d.getTime() >= cutoff;
   });
 
-  const count = entries.length;
+  if (!recent.length) {
+    return {
+      avgIndex: null,
+      pillarAverages: {},
+      usedDays: daysWindow,
+      recentEntries: [],
+    };
+  }
 
-  const averages = {
-    emotional: emoSum / count,
-    physical: physSum / count,
-    spiritual: spirSum / count,
-    financial: finSum / count,
-    wellness: wellSum / count,
+  let indexSum = 0;
+  const sums = {};
+  const counts = {};
+
+  PILLARS.forEach((p) => {
+    sums[p.key] = 0;
+    counts[p.key] = 0;
+  });
+
+  for (const entry of recent) {
+    const idx = Number(entry.index ?? entry.wellnessIndex);
+    if (!Number.isNaN(idx)) {
+      indexSum += idx;
+    }
+
+    PILLARS.forEach((p) => {
+      const val = Number(entry[p.key]);
+      if (!Number.isNaN(val)) {
+        sums[p.key] += val;
+        counts[p.key] += 1;
+      }
+    });
+  }
+
+  const pillarAverages = {};
+  PILLARS.forEach((p) => {
+    if (counts[p.key] > 0) {
+      pillarAverages[p.key] = sums[p.key] / counts[p.key];
+    } else {
+      pillarAverages[p.key] = null;
+    }
+  });
+
+  const avgIndex = indexSum / recent.length;
+
+  return {
+    avgIndex,
+    pillarAverages,
+    usedDays: daysWindow,
+    recentEntries: recent,
+  };
+}
+
+function computeTrends(entries) {
+  // Very simple trend logic: compare last 3 vs previous 3
+  if (entries.length < 4) {
+    return {
+      rising: [],
+      needsCare: [],
+      steady: [],
+      waiting: PILLARS.map((p) => p.key),
+    };
+  }
+
+  const sorted = [...entries].sort((a, b) => {
+    const da = parseDate(a.date || a.createdAt || a.timestamp) || new Date(0);
+    const db = parseDate(b.date || b.createdAt || b.timestamp) || new Date(0);
+    return db.getTime() - da.getTime();
+  });
+
+  const recent = sorted.slice(0, 3);
+  const prev = sorted.slice(3, 6);
+
+  const rising = [];
+  const needsCare = [];
+  const steady = [];
+  const waiting = [];
+
+  const avgFor = (list, key) => {
+    const vals = list
+      .map((e) => Number(e[key]))
+      .filter((v) => !Number.isNaN(v));
+    if (!vals.length) return null;
+    return vals.reduce((a, b) => a + b, 0) / vals.length;
   };
 
-  const pillarList = [
-    { key: "emotional", label: "Emotional", value: averages.emotional },
-    { key: "physical", label: "Physical", value: averages.physical },
-    { key: "spiritual", label: "Spiritual", value: averages.spiritual },
-    { key: "financial", label: "Financial", value: averages.financial },
-  ];
+  PILLARS.forEach((p) => {
+    const recentAvg = avgFor(recent, p.key);
+    const prevAvg = avgFor(prev, p.key);
 
-  let strongest = pillarList[0];
-  let softest = pillarList[0];
-
-  pillarList.forEach((p) => {
-    if (p.value > strongest.value) strongest = p;
-    if (p.value < softest.value) softest = p;
-  });
-
-  let biggestChange = null;
-  if (entries.length >= 2) {
-    const last = entries[entries.length - 1];
-    const prev = entries[entries.length - 2];
-
-    const deltas = pillarList.map((p) => {
-      const lastVal = Number(last.pillars?.[p.key] ?? 0);
-      const prevVal = Number(prev.pillars?.[p.key] ?? 0);
-      return { ...p, delta: lastVal - prevVal };
-    });
-
-    biggestChange = deltas.reduce((best, current) => {
-      if (!best) return current;
-      return Math.abs(current.delta) > Math.abs(best.delta) ? current : best;
-    }, null);
-  }
-
-  return { averages, strongest, softest, biggestChange };
-}
-
-function computeAchievements(entries) {
-  const count = entries.length;
-  if (!count) {
-    return [
-      {
-        id: "first",
-        title: "First check-in",
-        description: "Log your very first Daily Check-In.",
-        earned: false,
-        icon: "🌱",
-      },
-      {
-        id: "five",
-        title: "Five check-ins",
-        description: "Show up for five separate days.",
-        earned: false,
-        icon: "🖐️",
-      },
-      {
-        id: "ten",
-        title: "Ten check-ins",
-        description: "Keep going for ten days.",
-        earned: false,
-        icon: "🔟",
-      },
-      {
-        id: "streak3",
-        title: "3-day streak",
-        description: "Check in three days in a row.",
-        earned: false,
-        icon: "🔥",
-      },
-      {
-        id: "streak7",
-        title: "7-day streak",
-        description: "Stay with it for a full week.",
-        earned: false,
-        icon: "💫",
-      },
-    ];
-  }
-
-  // build a set of YYYY-MM-DD strings
-  const dates = entries.map((e) => {
-    const d = new Date(e.timestamp);
-    return isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
-  }).filter(Boolean);
-
-  const dateSet = new Set(dates);
-  const latestDateStr = dates[dates.length - 1];
-  const latestDate = latestDateStr ? new Date(latestDateStr + "T00:00:00") : null;
-
-  let currentStreak = 0;
-  if (latestDate) {
-    let cursor = new Date(latestDate);
-    while (true) {
-      const key = cursor.toISOString().slice(0, 10);
-      if (dateSet.has(key)) {
-        currentStreak += 1;
-        cursor.setDate(cursor.getDate() - 1);
-      } else {
-        break;
-      }
+    if (recentAvg == null || prevAvg == null) {
+      waiting.push(p.key);
+      return;
     }
-  }
 
-  return [
-    {
-      id: "first",
-      title: "First check-in",
-      description: "Log your very first Daily Check-In.",
-      earned: count >= 1,
-      icon: "🌱",
-    },
-    {
-      id: "five",
-      title: "Five check-ins",
-      description: "Show up for five separate days.",
-      earned: count >= 5,
-      icon: "🖐️",
-    },
-    {
-      id: "ten",
-      title: "Ten check-ins",
-      description: "Keep going for ten days.",
-      earned: count >= 10,
-      icon: "🔟",
-    },
-    {
-      id: "streak3",
-      title: "3-day streak",
-      description: "Check in three days in a row.",
-      earned: currentStreak >= 3,
-      icon: "🔥",
-    },
-    {
-      id: "streak7",
-      title: "7-day streak",
-      description: "Stay with it for a full week.",
-      earned: currentStreak >= 7,
-      icon: "💫",
-    },
-  ];
-}
+    const diff = recentAvg - prevAvg;
 
-function formatDate(ts) {
-  if (!ts) return "";
-  const d = new Date(ts);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
+    if (diff >= 0.75) {
+      rising.push(p.key);
+    } else if (diff <= -0.75) {
+      needsCare.push(p.key);
+    } else {
+      steady.push(p.key);
+    }
   });
+
+  return { rising, needsCare, steady, waiting };
 }
 
-function formatNumber(value) {
-  if (value == null || Number.isNaN(value)) return 0;
-  return Number(value.toFixed(1));
-}
+/* ---------- Inline styles ---------- */
 
-function StatCard({ title, value, description }) {
-  const v = value != null ? formatNumber(value) : null;
-  return (
-    <section
-      style={{
-        padding: "1rem",
-        borderRadius: "1rem",
-        background: "rgba(255,255,255,0.05)",
-        minWidth: 0,
-      }}
-    >
-      <h3 style={{ fontSize: "0.85rem", margin: "0 0 0.4rem" }}>{title}</h3>
-      <div style={{ fontSize: "1.4rem", fontWeight: 600, marginBottom: "0.15rem" }}>
-        {v !== null ? v.toFixed(1) : "—"}
-        <span style={{ fontSize: "0.8rem", opacity: 0.7 }}>/10</span>
-      </div>
-      <p style={{ fontSize: "0.8rem", opacity: 0.7, margin: 0 }}>{description}</p>
-    </section>
-  );
-}
+const wrapper = {
+  minHeight: "100vh",
+  backgroundColor: "#020617", // slate-950-ish
+  color: "#f9fafb",
+};
 
-function AchievementBadge({ achievement }) {
-  const { title, description, earned, icon } = achievement;
-  return (
-    <div
-      style={{
-        padding: "0.5rem 0.7rem",
-        borderRadius: "0.9rem",
-        border: earned
-          ? "1px solid rgba(144, 238, 144, 0.9)"
-          : "1px solid rgba(160, 160, 200, 0.5)",
-        background: earned
-          ? "linear-gradient(135deg, rgba(144, 238, 144, 0.25), rgba(40, 120, 80, 0.5))"
-          : "rgba(255,255,255,0.03)",
-        opacity: earned ? 1 : 0.6,
-        display: "flex",
-        alignItems: "center",
-        gap: "0.6rem",
-        fontSize: "0.8rem",
-      }}
-    >
-      <span style={{ fontSize: "1.2rem" }}>{icon}</span>
-      <div>
-        <div style={{ fontWeight: 600, marginBottom: "0.1rem" }}>{title}</div>
-        <div style={{ opacity: 0.8 }}>{description}</div>
-        {!earned && (
-          <div style={{ opacity: 0.7, marginTop: "0.1rem", fontSize: "0.75rem" }}>
-            Not yet unlocked
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+const page = {
+  maxWidth: "900px",
+  margin: "0 auto",
+  padding: "80px 16px 96px",
+  fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+};
+
+const headerTitle = {
+  fontSize: "32px",
+  fontWeight: 700,
+  marginBottom: 4,
+};
+
+const headerSubtitle = {
+  fontSize: "13px",
+  color: "#cbd5f5",
+  marginBottom: 24,
+};
+
+const gridTwo = {
+  display: "grid",
+  gridTemplateColumns: "1fr",
+  gap: 16,
+  marginBottom: 24,
+};
+
+const card = {
+  borderRadius: 16,
+  border: "1px solid rgba(148, 163, 184, 0.4)",
+  background:
+    "linear-gradient(145deg, rgba(15,23,42,0.95), rgba(15,23,42,0.85))",
+  padding: "14px 16px",
+};
+
+const sectionCard = {
+  ...card,
+  marginBottom: 24,
+};
+
+const labelCaps = {
+  fontSize: 10,
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  color: "#94a3b8",
+};
+
+const bigNumber = {
+  fontSize: 36,
+  fontWeight: 600,
+  marginTop: 6,
+};
+
+const smallText = {
+  fontSize: 11,
+  color: "#94a3b8",
+  marginTop: 6,
+};
+
+const h2 = {
+  fontSize: 14,
+  fontWeight: 600,
+  marginBottom: 8,
+};
+
+const smallP = {
+  fontSize: 12,
+  color: "#e5e7eb",
+};
+
+const miniLabel = {
+  fontSize: 12,
+  fontWeight: 600,
+  color: "#e5e7eb",
+};
+
+const recentCard = {
+  borderRadius: 12,
+  border: "1px solid rgba(30,64,175,0.4)",
+  backgroundColor: "rgba(2,6,23,0.9)",
+  padding: "8px 10px",
+};
+
+const recentDate = {
+  fontSize: 11,
+  color: "#94a3b8",
+};
+
+const recentIndex = {
+  fontSize: 13,
+  fontWeight: 600,
+  marginTop: 4,
+};
+
+const recentLine = {
+  fontSize: 11,
+  color: "#e5e7eb",
+  marginTop: 4,
+};
+
+const recentNote = {
+  fontSize: 11,
+  fontStyle: "italic",
+  color: "#9ca3af",
+  marginTop: 4,
+};
+
+const cycleCardOuter = {
+  borderRadius: 18,
+  border: "1px solid rgba(56,189,248,0.6)",
+  background:
+    "linear-gradient(135deg, rgba(8,47,73,0.9), rgba(8,47,73,0.7))",
+  padding: "14px 16px",
+  cursor: "pointer",
+};
+
+const cycleOptional = {
+  fontSize: 10,
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  color: "#7dd3fc",
+};
+
+const cycleTitle = {
+  fontSize: 15,
+  fontWeight: 600,
+  color: "#e0f2fe",
+  marginTop: 4,
+};
+
+const cycleBody = {
+  fontSize: 11,
+  color: "#bae6fd",
+  marginTop: 4,
+};
+
+const cycleFooter = {
+  fontSize: 10,
+  color: "#7dd3fc",
+  marginTop: 8,
+};
+
+const cycleArrow = {
+  width: 32,
+  height: 32,
+  borderRadius: 999,
+  border: "1px solid rgba(125,211,252,0.7)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: 16,
+  color: "#e0f2fe",
+  marginLeft: 12,
+};
+
+/* ---------- Main Component ---------- */
 
 export default function Insights() {
-  const [entries, setEntries] = useState([]);
-  const [stats, setStats] = useState({
-    averages: null,
-    strongest: null,
-    softest: null,
-    biggestChange: null,
-  });
-  const [achievements, setAchievements] = useState([]);
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    const loaded = loadEntries();
-    setEntries(loaded);
-    setStats(computeStats(loaded));
-    setAchievements(computeAchievements(loaded));
-  }, []);
+  const { avgIndex, pillarAverages, usedDays, recentEntries, allTrends } =
+    useMemo(() => {
+      const entries = loadEntries();
+      const averages = computeAverages(entries, 14);
+      const trends = computeTrends(entries);
 
-  const { averages, strongest, softest, biggestChange } = stats;
+      return {
+        avgIndex: averages.avgIndex,
+        pillarAverages: averages.pillarAverages,
+        usedDays: averages.usedDays,
+        recentEntries: averages.recentEntries.length
+          ? averages.recentEntries
+          : entries,
+        allTrends: trends,
+      };
+    }, []);
 
-  const hasData = entries.length > 0;
-  const latest = hasData ? entries[entries.length - 1] : null;
-  const recent = hasData ? [...entries].slice(-7).reverse() : [];
+  const lastFew = useMemo(() => {
+    if (!recentEntries.length) return [];
+    const sorted = [...recentEntries].sort((a, b) => {
+      const da = parseDate(a.date || a.createdAt || a.timestamp) || new Date(0);
+      const db = parseDate(b.date || b.createdAt || b.timestamp) || new Date(0);
+      return db.getTime() - da.getTime();
+    });
+    return sorted.slice(0, 6);
+  }, [recentEntries]);
+
+  const { rising, needsCare, waiting } = allTrends;
+  const hasHistory = recentEntries.length > 0;
+
+  // Build the single horizontal Wellness Categories line
+  const wellnessCategoriesLine = PILLARS.map((p) => {
+    const avg = pillarAverages[p.key];
+    const value = avg != null ? `${avg.toFixed(1)}/10` : "—/10";
+    return `${p.label} ${value}`;
+  }).join(" • ");
 
   return (
-    <div style={{ padding: "1.5rem 1rem", maxWidth: "950px", margin: "0 auto" }}>
-      {/* Header */}
-      <header style={{ marginBottom: "1.4rem" }}>
-        <h1 style={{ fontSize: "1.4rem", marginBottom: "0.35rem" }}>Insights</h1>
-        <p style={{ fontSize: "0.9rem", opacity: 0.75, maxWidth: "520px" }}>
-          See how your check-ins are adding up over time. These insights and
-          awards are here to help you notice patterns, not judge your scores.
-        </p>
-      </header>
-
-      {/* Awards & milestones */}
-      <section
-        style={{
-          marginBottom: "1.5rem",
-          padding: "1rem 1.1rem",
-          borderRadius: "1rem",
-          background:
-            "radial-gradient(circle at top left, rgba(120,180,255,0.2), rgba(10,10,20,0.95))",
-          border: "1px solid rgba(120, 140, 230, 0.7)",
-          boxShadow: "0 16px 40px rgba(0,0,0,0.65)",
-        }}
-      >
-        <h2
-          style={{
-            fontSize: "0.95rem",
-            margin: 0,
-            marginBottom: "0.6rem",
-            fontWeight: 600,
-          }}
-        >
-          Awards & milestones
-        </h2>
-
-        {!hasData && (
-          <p style={{ fontSize: "0.8rem", opacity: 0.8, margin: 0 }}>
-            As you keep checking in, you’ll start unlocking gentle milestones for
-            showing up — first check-in, streaks, and more. There are no penalties
-            here, just quiet encouragement.
+    <div style={wrapper}>
+      <main style={page}>
+        {/* Header */}
+        <header style={{ marginBottom: 24 }}>
+          <h1 style={headerTitle}>Insights</h1>
+          <p style={headerSubtitle}>
+            A clean snapshot of how life has felt over the last couple of weeks.
           </p>
-        )}
+        </header>
 
-        {hasData && (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: "0.6rem",
-            }}
-          >
-            {achievements.map((a) => (
-              <AchievementBadge key={a.id} achievement={a} />
-            ))}
+        {/* Top cards */}
+        <section style={gridTwo}>
+          {/* Average index */}
+          <div style={card}>
+            <p style={labelCaps}>Average Wellness Index</p>
+            <p style={bigNumber}>
+              {avgIndex != null ? avgIndex.toFixed(1) : "—"}
+            </p>
+            <p style={smallText}>
+              {hasHistory ? (
+                <>
+                  Based on {recentEntries.length} recent check-ins
+                  {usedDays ? ` (about ${usedDays} days).` : "."}
+                </>
+              ) : (
+                "Your average will appear here after a few check-ins."
+              )}
+            </p>
           </div>
-        )}
-      </section>
 
-      {/* Average cards */}
-      <section
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "0.9rem",
-          marginBottom: "1.5rem",
-        }}
-      >
-        <StatCard
-          title="Emotional (avg)"
-          value={averages?.emotional}
-          description="How your inner world has felt on average."
-        />
-        <StatCard
-          title="Physical (avg)"
-          value={averages?.physical}
-          description="Your average sense of energy and body wellbeing."
-        />
-        <StatCard
-          title="Spiritual (avg)"
-          value={averages?.spiritual}
-          description="Your average feeling of meaning and connection."
-        />
-        <StatCard
-          title="Financial (avg)"
-          value={averages?.financial}
-          description="How steady money and obligations have felt."
-        />
-      </section>
+          {/* Patterns at a glance (NOT a full-card link anymore) */}
+          <div style={card}>
+            <p style={labelCaps}>Patterns at a glance</p>
 
-      {/* Narrative summary */}
-      <section
-        style={{
-          marginBottom: "1.5rem",
-          padding: "1.15rem",
-          borderRadius: "1rem",
-          background: "rgba(255,255,255,0.05)",
-          fontSize: "0.9rem",
-        }}
-      >
-        {!hasData && (
-          <p style={{ margin: 0, opacity: 0.8 }}>
-            Once you’ve done a few Daily Check-Ins, this page will highlight
-            which areas feel strongest, which might need extra care, and how your
-            last check-in compares to the one before it.
-          </p>
-        )}
-
-        {hasData && (
-          <>
-            <p style={{ marginTop: 0, marginBottom: "0.6rem", opacity: 0.9 }}>
-              Based on your check-ins so far, your{" "}
-              <strong>strongest pillar</strong> has been{" "}
-              <strong>{strongest?.label}</strong>{" "}
-              ({formatNumber(strongest?.value)}/10), while the area that may need
-              the most care is <strong>{softest?.label}</strong>{" "}
-              ({formatNumber(softest?.value)}/10).
+            <p style={{ ...smallText, marginTop: 6 }}>
+              Resonifi looks at roughly the last two weeks of check-ins. It
+              compares your most recent few entries with the few just before
+              them and surfaces gentle lifts and dips – not diagnoses – so you
+              can see where things may be trending and decide where to give
+              yourself a bit more care.
             </p>
 
-            {biggestChange && Math.abs(biggestChange.delta) >= 0.3 && (
-              <p style={{ margin: 0, opacity: 0.85 }}>
-                Since your last check-in on{" "}
-                <strong>{formatDate(latest?.timestamp)}</strong>, the biggest
-                shift has been in your{" "}
-                <strong>{biggestChange.label}</strong> pillar, which is{" "}
-                {biggestChange.delta > 0 ? "up" : "down"} by{" "}
-                {formatNumber(Math.abs(biggestChange.delta))} points. That might
-                be a helpful place to pause and reflect.
+            <div style={{ marginTop: 10 }}>
+              <p style={miniLabel}>Lifting</p>
+              <p style={{ ...smallP, marginTop: 2 }}>
+                {rising.length
+                  ? `These Wellness Categories have been moving up compared to the previous window of check-ins over the last couple of weeks: ${rising
+                      .map((k) => PILLARS.find((p) => p.key === k)?.label)
+                      .filter(Boolean)
+                      .join(
+                        ", "
+                      )}. Notice what might be supporting that lift – routines, people, places – and consider protecting more of that time.`
+                  : hasHistory
+                  ? "Nothing is clearly lifting yet. Day-to-day ups and downs are normal, so this only lights up when there is a clearer upward drift over your recent check-ins."
+                  : "As you build up about two weeks of history, this will highlight Wellness Categories that are gently lifting over time."}
               </p>
-            )}
+            </div>
 
-            {biggestChange && Math.abs(biggestChange.delta) < 0.3 && (
-              <p style={{ margin: 0, opacity: 0.85 }}>
-                Your most recent check-in on{" "}
-                <strong>{formatDate(latest?.timestamp)}</strong> is fairly close
-                to the previous one across all pillars. That consistency can be a
-                sign of a stable phase — keep checking in to notice the smaller
-                shifts.
+            <div style={{ marginTop: 10 }}>
+              <p style={miniLabel}>Needs care</p>
+              <p style={{ ...smallP, marginTop: 2 }}>
+                {needsCare.length
+                  ? `These Wellness Categories have dipped compared to the previous window of check-ins in the last couple of weeks: ${needsCare
+                      .map((k) => PILLARS.find((p) => p.key === k)?.label)
+                      .filter(Boolean)
+                      .join(
+                        ", "
+                      )}. Treat this as a soft nudge to check in with yourself there, not a verdict or a scorecard.`
+                  : hasHistory
+                  ? "No categories are showing a clear downward move right now. If a day feels off, your notes and detailed check-ins are still the best place to unpack what is going on."
+                  : "Once you have around two weeks of entries, this will gently flag areas that might benefit from a little more attention."}
               </p>
-            )}
-          </>
-        )}
-      </section>
+            </div>
 
-      {/* Recent check-ins */}
-      <section>
-        <h2
-          style={{
-            fontSize: "1rem",
-            marginBottom: "0.75rem",
-            opacity: 0.9,
-          }}
-        >
-          Recent check-ins
-        </h2>
+            <div style={{ marginTop: 10 }}>
+              <p style={miniLabel}>Waiting on data</p>
+              <p style={{ ...smallP, marginTop: 2 }}>
+                {waiting.length
+                  ? `We don’t yet have enough recent scores in these Wellness Categories to compare two short windows from the last couple of weeks: ${waiting
+                      .map((k) => PILLARS.find((p) => p.key === k)?.label)
+                      .filter(Boolean)
+                      .join(
+                        ", "
+                      )}. Keep checking in and they’ll naturally move into the lifting or needs care lines as the pattern becomes clearer.`
+                  : "Right now we have enough recent check-ins across all categories to show simple movement where it exists."}
+              </p>
+            </div>
 
-        {!hasData && (
-          <p style={{ fontSize: "0.85rem", opacity: 0.75 }}>
-            You haven’t logged any check-ins yet. Start with a Daily Check-In and
-            this section will show a simple history of how things have been
-            feeling over time.
-          </p>
-        )}
-
-        {hasData && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.65rem" }}>
-            {recent.map((entry, idx) => {
-              const p = entry.pillars || {};
-              return (
-                <div
-                  key={entry.timestamp ?? idx}
-                  style={{
-                    padding: "0.9rem 1rem",
-                    borderRadius: "0.9rem",
-                    background: "rgba(255,255,255,0.03)",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "0.35rem",
-                    fontSize: "0.8rem",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "baseline",
-                      gap: "0.75rem",
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <div style={{ fontWeight: 600 }}>
-                      {formatDate(entry.timestamp) || "Unknown date"}
-                    </div>
-                    <div style={{ opacity: 0.8 }}>
-                      Wellness Index:{" "}
-                      <strong>
-                        {formatNumber(Number(entry.wellnessIndex ?? 0))}/10
-                      </strong>
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: "0.75rem",
-                      opacity: 0.8,
-                    }}
-                  >
-                    <span>
-                      Emotional {formatNumber(Number(p.emotional ?? 0))}/10
-                    </span>
-                    <span>
-                      Physical {formatNumber(Number(p.physical ?? 0))}/10
-                    </span>
-                    <span>
-                      Spiritual {formatNumber(Number(p.spiritual ?? 0))}/10
-                    </span>
-                    <span>
-                      Financial {formatNumber(Number(p.financial ?? 0))}/10
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+            {/* Tiny WHY link */}
+            <p
+              style={{
+                ...smallText,
+                marginTop: 10,
+                fontSize: 11,
+                color: "#7dd3fc",
+                cursor: "pointer",
+                textDecoration: "underline",
+              }}
+              onClick={() => navigate("/insights-why")}
+            >
+              Why does this take about two weeks?
+            </p>
           </div>
-        )}
-      </section>
+        </section>
 
-      {/* Footer trademark */}
-      <div
-        style={{
-          textAlign: "center",
-          marginTop: "2.5rem",
-          opacity: 0.6,
-          fontSize: "0.75rem",
-        }}
-      >
-        Resonifi Wellness Inc.™
-      </div>
+        {/* Wellness Categories – single horizontal line */}
+        <section style={sectionCard}>
+          <h2 style={h2}>Wellness Categories</h2>
+          <p
+            style={{
+              ...smallP,
+              whiteSpace: "nowrap",
+              overflowX: "auto",
+              paddingBottom: 2,
+            }}
+          >
+            {wellnessCategoriesLine}
+          </p>
+        </section>
+
+        {/* Recent check-ins */}
+        <section style={sectionCard}>
+          <h2 style={h2}>Recent check-ins</h2>
+
+          {!lastFew.length && (
+            <p style={smallP}>
+              Once you have a few check-ins, they will show up here with your
+              daily scores and notes.
+            </p>
+          )}
+
+          <div
+            style={{
+              marginTop: 8,
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+            }}
+          >
+            {lastFew.map((entry, idx) => (
+              <div key={idx} style={recentCard}>
+                <p style={recentDate}>
+                  {formatDate(
+                    entry.date || entry.createdAt || entry.timestamp
+                  )}
+                </p>
+                <p style={recentIndex}>
+                  Wellness Index:{" "}
+                  {entry.index != null
+                    ? Number(entry.index).toFixed(1)
+                    : entry.wellnessIndex != null
+                    ? Number(entry.wellnessIndex).toFixed(1)
+                    : "—"}
+                </p>
+                <p style={recentLine}>
+                  Emotional {entry.emotional ?? "—"}/10 · Physical{" "}
+                  {entry.physical ?? "—"}/10 · Spiritual{" "}
+                  {entry.spiritual ?? "—"}/10 · Financial{" "}
+                  {entry.financial ?? "—"}/10 · Digital{" "}
+                  {entry.digital ?? "—"}/10
+                </p>
+                {entry.note && <p style={recentNote}>“{entry.note}”</p>}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Cycle Tracking card */}
+        <section style={{ marginTop: 12 }}>
+          <button
+            type="button"
+            onClick={() => navigate("/cycle-tracking")}
+            style={{
+              width: "100%",
+              textAlign: "left",
+              border: "none",
+              background: "none",
+              padding: 0,
+            }}
+          >
+            <div style={cycleCardOuter}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <div>
+                  <p style={cycleOptional}>Optional</p>
+                  <h3 style={cycleTitle}>Cycle Tracking</h3>
+                  <p style={cycleBody}>
+                    Log cycles and see how they line up with your Wellness
+                    Index over time.
+                  </p>
+                </div>
+                <div style={cycleArrow}>→</div>
+              </div>
+              <p style={cycleFooter}>Tap to open the Cycle Tracking view.</p>
+            </div>
+          </button>
+        </section>
+      </main>
     </div>
   );
 }

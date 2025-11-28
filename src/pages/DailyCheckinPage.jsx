@@ -1,11 +1,86 @@
 // src/pages/DailyCheckinPage.jsx
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
 const HISTORY_KEY = "resonifi_checkins_v1";
+const TODAY_STATE_KEY = "resonifi_today_checkin_v1";
 
-// ---- Question banks: 10 per pillar ----
+// 🔸 This is the SAME key CycleTracking.jsx uses
+const CYCLE_STORAGE_KEY = "resonifi_cycle_v1";
+
+// --- Cycle helpers (mirrors CycleTracking.jsx) ---
+const DEFAULT_CYCLE_LENGTH = 28;
+const DEFAULT_PERIOD_DAYS = 5;
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+function atMidnight(date) {
+  const d = new Date(date.getTime());
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function computeCycleSummary(lastStartStr, lastEndStr, length) {
+  if (!lastStartStr) return null;
+
+  const cycleLen = Number(length) || DEFAULT_CYCLE_LENGTH;
+  const start = atMidnight(new Date(`${lastStartStr}T00:00:00`));
+
+  let explicitEnd = null;
+  if (lastEndStr) {
+    explicitEnd = atMidnight(new Date(`${lastEndStr}T00:00:00`));
+  }
+
+  const periodDays = explicitEnd
+    ? Math.max(
+        1,
+        Math.round((explicitEnd.getTime() - start.getTime()) / MS_PER_DAY) + 1
+      )
+    : DEFAULT_PERIOD_DAYS;
+
+  const lastStart = start;
+  const lastEnd = explicitEnd
+    ? explicitEnd
+    : atMidnight(
+        new Date(start.getTime() + (DEFAULT_PERIOD_DAYS - 1) * MS_PER_DAY)
+      );
+
+  const today = atMidnight(new Date());
+  const diffFromStart = today.getTime() - start.getTime();
+
+  const dayOfCycle =
+    diffFromStart < 0 ? 1 : (Math.floor(diffFromStart / MS_PER_DAY) % cycleLen) + 1;
+
+  const cyclesPassed =
+    diffFromStart > 0 ? Math.floor(diffFromStart / (cycleLen * MS_PER_DAY)) : 0;
+
+  let nextStart = atMidnight(
+    new Date(start.getTime() + (cyclesPassed + 1) * cycleLen * MS_PER_DAY)
+  );
+  if (nextStart.getTime() <= today.getTime()) {
+    nextStart = atMidnight(new Date(nextStart.getTime() + cycleLen * MS_PER_DAY));
+  }
+  const nextEnd = atMidnight(
+    new Date(nextStart.getTime() + (periodDays - 1) * MS_PER_DAY)
+  );
+
+  return {
+    dayOfCycle,
+    length: cycleLen,
+    periodDays,
+    lastStart,
+    lastEnd,
+    nextStart,
+    nextEnd,
+  };
+}
+
+function formatISO(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
+  return date.toISOString().slice(0, 10); // YYYY-MM-DD
+}
+
+// ---- Question banks: 10 per pillar (ONE is used per day) ----
 const EMOTIONAL_QUESTIONS = [
   "How steady did your emotions feel overall today?",
   "How well did you bounce back from stress or setbacks?",
@@ -58,55 +133,159 @@ const FINANCIAL_QUESTIONS = [
   "How safe did you feel about your financial future today?",
 ];
 
-// Deterministic “rotation”: pick 2 distinct questions from each bank based on the day number
-function pickTwoFromBank(bank, dayOffset = 0) {
-  const dayNumber = Math.floor(Date.now() / (1000 * 60 * 60 * 24)) + dayOffset;
-  const firstIndex = dayNumber % bank.length;
-  const secondIndex = (dayNumber + 3) % bank.length; // offset by 3 so it's different
-  return [bank[firstIndex], bank[secondIndex]];
+const DIGITAL_QUESTIONS = [
+  "How easy was it to step away from your phone or devices today?",
+  "How calm did your mind feel after time online today?",
+  "How intentional did your scrolling and screen time feel?",
+  "How often did notifications pull you away from what mattered?",
+  "How much did you feel in control of your tech, vs. pulled by it?",
+  "How refreshed did you feel after using digital tools today?",
+  "How well did you protect your focus from digital distractions?",
+  "How grounded did you feel after being on social or news feeds?",
+  "How much did tech support your wellbeing (vs. drain it) today?",
+  "How easy was it to put your phone down when you chose to?",
+];
+
+// Deterministic rotation: pick ONE question from a bank per day
+function pickOneFromBank(bank, offset = 0) {
+  const dayNumber = Math.floor(Date.now() / (1000 * 60 * 60 * 24)) + offset;
+  const index = dayNumber % bank.length;
+  return bank[index];
+}
+
+// Reusable pillar section
+function PillarSection({
+  title,
+  question,
+  value,
+  onChange,
+  leftLabel,
+  rightLabel,
+}) {
+  const section = {
+    marginBottom: "24px",
+    paddingBottom: "16px",
+    borderBottom: "1px solid #1e293b",
+  };
+
+  const pillarTitle = {
+    fontSize: "14px",
+    fontWeight: 600,
+    marginBottom: "8px",
+  };
+
+  const questionText = {
+    fontSize: "13px",
+    color: "#e5e7eb",
+    marginBottom: "8px",
+  };
+
+  const slider = {
+    width: "100%",
+    appearance: "none",
+    height: "8px",
+    borderRadius: "999px",
+    background: "#0f172a",
+    outline: "none",
+    marginBottom: "6px",
+  };
+
+  const anchorsRow = {
+    display: "flex",
+    justifyContent: "space-between",
+    fontSize: "11px",
+    color: "#9ca3af",
+  };
+
+  return (
+    <div style={section}>
+      <p style={pillarTitle}>{title}</p>
+      <p style={questionText}>{question}</p>
+      <input
+        type="range"
+        min="1"
+        max="10"
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        style={slider}
+      />
+      <div style={anchorsRow}>
+        <span>{leftLabel}</span>
+        <span>{rightLabel}</span>
+      </div>
+    </div>
+  );
 }
 
 export default function DailyCheckinPage() {
   const navigate = useNavigate();
+  const todayKey = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
 
-  // Question sliders (0–10) – 2 per pillar
-  const [emotionalQ1, setEmotionalQ1] = useState(5);
-  const [emotionalQ2, setEmotionalQ2] = useState(5);
+  // One slider per pillar (1–10)
+  const [emotional, setEmotional] = useState(5);
+  const [physical, setPhysical] = useState(5);
+  const [spiritual, setSpiritual] = useState(5);
+  const [financial, setFinancial] = useState(5);
+  const [digital, setDigital] = useState(5);
 
-  const [physicalQ1, setPhysicalQ1] = useState(5);
-  const [physicalQ2, setPhysicalQ2] = useState(5);
+  // Micro-journal
+  const [reflection, setReflection] = useState("");
 
-  const [spiritualQ1, setSpiritualQ1] = useState(5);
-  const [spiritualQ2, setSpiritualQ2] = useState(5);
+  // Period info (derived from same storage as CycleTracking)
+  const [lastPeriodStart, setLastPeriodStart] = useState(null);
+  const [nextPeriodStart, setNextPeriodStart] = useState(null);
 
-  const [financialQ1, setFinancialQ1] = useState(5);
-  const [financialQ2, setFinancialQ2] = useState(5);
+  // Today’s questions (one per pillar)
+  const emotionalQuestion = pickOneFromBank(EMOTIONAL_QUESTIONS, 0);
+  const physicalQuestion = pickOneFromBank(PHYSICAL_QUESTIONS, 11);
+  const spiritualQuestion = pickOneFromBank(SPIRITUAL_QUESTIONS, 23);
+  const financialQuestion = pickOneFromBank(FINANCIAL_QUESTIONS, 37);
+  const digitalQuestion = pickOneFromBank(DIGITAL_QUESTIONS, 51);
 
-  // Gratitude + good deed dropdowns + notes
-  const [gratitude, setGratitude] = useState("");
-  const [gratitudeNote, setGratitudeNote] = useState("");
-  const [goodDeed, setGoodDeed] = useState("");
-  const [goodDeedNote, setGoodDeedNote] = useState("");
+  // Load today's saved state & cycle info
+  useEffect(() => {
+    // Today state (sliders + mini reflection)
+    try {
+      const raw = window.localStorage.getItem(TODAY_STATE_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (saved && saved.date === todayKey) {
+          if (typeof saved.emotional === "number") setEmotional(saved.emotional);
+          if (typeof saved.physical === "number") setPhysical(saved.physical);
+          if (typeof saved.spiritual === "number") setSpiritual(saved.spiritual);
+          if (typeof saved.financial === "number")
+            setFinancial(saved.financial);
+          if (typeof saved.digital === "number") setDigital(saved.digital);
+          if (typeof saved.reflection === "string")
+            setReflection(saved.reflection);
+        }
+      }
+    } catch (err) {
+      console.error("Error loading today's check-in state", err);
+    }
 
-  // Pick today’s rotating questions
-  const [emotionalText1, emotionalText2] = pickTwoFromBank(
-    EMOTIONAL_QUESTIONS,
-    0
-  );
-  const [physicalText1, physicalText2] = pickTwoFromBank(
-    PHYSICAL_QUESTIONS,
-    11
-  );
-  const [spiritualText1, spiritualText2] = pickTwoFromBank(
-    SPIRITUAL_QUESTIONS,
-    23
-  );
-  const [financialText1, financialText2] = pickTwoFromBank(
-    FINANCIAL_QUESTIONS,
-    37
-  );
+    // Cycle info – mirror CycleTracking storage
+    try {
+      const rawCycle = window.localStorage.getItem(CYCLE_STORAGE_KEY);
+      if (rawCycle) {
+        const parsed = JSON.parse(rawCycle);
+        const lastStartStr = parsed.lastStart || "";
+        const lastEndStr = parsed.lastEnd || "";
+        const len = parsed.length || DEFAULT_CYCLE_LENGTH;
 
-  // ---- Styles ----
+        const summary = computeCycleSummary(lastStartStr, lastEndStr, len);
+        if (summary) {
+          const lastISO = formatISO(summary.lastStart);
+          const nextISO = formatISO(summary.nextStart);
+          if (lastISO) setLastPeriodStart(lastISO);
+          if (nextISO) setNextPeriodStart(nextISO);
+        }
+      }
+    } catch (err) {
+      console.error("Error loading cycle info in DailyCheckinPage", err);
+    }
+  }, [todayKey]);
+
   const page = {
     backgroundColor: "#020617",
     color: "#f8fafc",
@@ -121,83 +300,55 @@ export default function DailyCheckinPage() {
   const title = {
     fontSize: "22px",
     fontWeight: 600,
-    marginBottom: "8px",
+    marginBottom: "16px",
   };
 
-  const subtitle = {
+  const periodCard = {
+    marginBottom: "20px",
+    padding: "14px 16px",
+    borderRadius: "14px",
+    background:
+      "linear-gradient(135deg, rgba(56,189,248,0.10), rgba(37,99,235,0.18))",
+    border: "1px solid rgba(125,211,252,0.4)",
+    boxShadow: "0 0 22px rgba(56,189,248,0.35)",
     fontSize: "13px",
-    color: "#94a3b8",
-    marginBottom: "24px",
+    color: "#e0f2fe",
+    lineHeight: 1.5,
   };
 
-  const section = {
-    marginBottom: "24px",
-    paddingBottom: "16px",
-    borderBottom: "1px solid #1e293b",
+  const periodTitle = {
+    fontSize: "12px",
+    textTransform: "uppercase",
+    letterSpacing: "0.18em",
+    marginBottom: "6px",
+    color: "rgba(226,232,240,0.9)",
   };
 
-  const label = {
+  const journalSection = {
+    marginTop: "16px",
+    paddingTop: "16px",
+    borderTop: "1px solid #1e293b",
+  };
+
+  const journalLabel = {
     fontSize: "14px",
     fontWeight: 500,
-    marginBottom: "8px",
-  };
-
-  const pillarTitle = {
-    fontSize: "14px",
-    fontWeight: 600,
-    marginBottom: "8px",
-  };
-
-  const slider = {
-    width: "100%",
-    appearance: "none",
-    height: "8px",
-    borderRadius: "999px",
-    background: "#1e293b",
-    outline: "none",
-    marginTop: "4px",
     marginBottom: "6px",
   };
 
-  const smallRow = {
-    display: "flex",
-    justifyContent: "space-between",
-    fontSize: "11px",
-    color: "#9ca3af",
-    marginBottom: "6px",
-  };
-
-  const valueText = {
-    fontSize: "12px",
-    color: "#e5e7eb",
-    marginBottom: "4px",
-  };
-
-  const select = {
-    width: "100%",
-    borderRadius: "999px",
-    border: "1px solid #1e293b",
-    backgroundColor: "#020617",
-    color: "#e5e7eb",
-    padding: "8px 12px",
+  const journalQuestion = {
     fontSize: "13px",
-    outline: "none",
+    color: "#cbd5e1",
+    marginBottom: "8px",
   };
 
-  const smallLabel = {
-    fontSize: "12px",
-    color: "#9ca3af",
-    marginTop: "8px",
-    marginBottom: "4px",
-  };
-
-  const noteArea = {
+  const journalArea = {
     width: "100%",
-    minHeight: "60px",
+    minHeight: "80px",
     resize: "vertical",
     borderRadius: "12px",
     border: "1px solid #1e293b",
-    padding: "8px 10px",
+    padding: "10px 12px",
     fontSize: "13px",
     backgroundColor: "#020617",
     color: "#e5e7eb",
@@ -206,35 +357,31 @@ export default function DailyCheckinPage() {
 
   const saveButton = {
     width: "100%",
-    padding: "12px 16px",
+    padding: "14px 16px",
     borderRadius: "999px",
     border: "none",
     cursor: "pointer",
-    fontSize: "16px",
+    fontSize: "15px",
     fontWeight: 600,
     background: "linear-gradient(135deg, #6366f1, #22d3ee)",
     color: "#f9fafb",
     boxShadow: "0 12px 30px rgba(79,70,229,0.5)",
-    marginTop: "26px",
+    marginTop: "24px",
   };
 
-  // ---- Save handler ----
   function handleSave() {
-    // Pillar scores are the average of the 2 question sliders (0–10)
-    const emotionalScore =
-      (Number(emotionalQ1) + Number(emotionalQ2)) / 2 || 0;
-    const physicalScore = (Number(physicalQ1) + Number(physicalQ2)) / 2 || 0;
-    const spiritualScore =
-      (Number(spiritualQ1) + Number(spiritualQ2)) / 2 || 0;
-    const financialScore =
-      (Number(financialQ1) + Number(financialQ2)) / 2 || 0;
+    const emotionalScore = emotional || 1;
+    const physicalScore = physical || 1;
+    const spiritualScore = spiritual || 1;
+    const financialScore = financial || 1;
+    const digitalScore = digital || 1;
 
     const avg =
       (emotionalScore +
         physicalScore +
         spiritualScore +
-        financialScore) /
-      4;
+        financialScore +
+        digitalScore) / 5;
 
     const overallIndex = Math.round((avg / 10) * 100); // 0–100 %
 
@@ -248,7 +395,7 @@ export default function DailyCheckinPage() {
       console.error("Error saving wellness index", err);
     }
 
-    // Save full check-in history for Insights + pillars
+    // Save full check-in history
     try {
       const raw = window.localStorage.getItem(HISTORY_KEY);
       const existing = raw ? JSON.parse(raw) : [];
@@ -256,34 +403,19 @@ export default function DailyCheckinPage() {
       const newEntry = {
         timestamp: new Date().toISOString(),
         index: overallIndex,
-
-        // Pillar scores derived from the question sliders
         emotional: emotionalScore,
         physical: physicalScore,
         spiritual: spiritualScore,
         financial: financialScore,
-
-        gratitude,
-        gratitudeNote,
-        goodDeed,
-        goodDeedNote,
-
-        emotionalQuestions: [
-          { text: emotionalText1, value: Number(emotionalQ1) },
-          { text: emotionalText2, value: Number(emotionalQ2) },
-        ],
-        physicalQuestions: [
-          { text: physicalText1, value: Number(physicalQ1) },
-          { text: physicalText2, value: Number(physicalQ2) },
-        ],
-        spiritualQuestions: [
-          { text: spiritualText1, value: Number(spiritualQ1) },
-          { text: spiritualText2, value: Number(spiritualQ2) },
-        ],
-        financialQuestions: [
-          { text: financialText1, value: Number(financialQ1) },
-          { text: financialText2, value: Number(financialQ2) },
-        ],
+        digital: digitalScore,
+        reflection,
+        emotionalQuestions: [{ text: emotionalQuestion, value: emotionalScore }],
+        physicalQuestions: [{ text: physicalQuestion, value: physicalScore }],
+        spiritualQuestions: [{ text: spiritualQuestion, value: spiritualScore }],
+        financialQuestions: [{ text: financialQuestion, value: financialScore }],
+        digitalQuestions: [{ text: digitalQuestion, value: digitalScore }],
+        lastPeriodStart: lastPeriodStart || null,
+        nextPeriodStart: nextPeriodStart || null,
       };
 
       const updated = [newEntry, ...existing];
@@ -292,176 +424,109 @@ export default function DailyCheckinPage() {
       console.error("Error saving check-in history", err);
     }
 
-    navigate("/");
-  }
+    // Save "today's state" so sliders & note stick until a new day
+    try {
+      const todayState = {
+        date: todayKey,
+        emotional,
+        physical,
+        spiritual,
+        financial,
+        digital,
+        reflection,
+      };
 
-  // Helper to render a question slider with pillar-specific anchors
-  function QuestionSlider({ text, value, onChange, anchors }) {
-    return (
-      <div style={{ marginBottom: "14px" }}>
-        <p style={{ fontSize: "13px", marginBottom: "4px" }}>{text}</p>
-        <input
-          type="range"
-          min="0"
-          max="10"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          style={slider}
-        />
-        <div style={smallRow}>
-          <span>{anchors[0]}</span>
-          <span>{anchors[1]}</span>
-          <span>{anchors[2]}</span>
-        </div>
-        <p style={valueText}>{value} / 10</p>
-      </div>
-    );
+      window.localStorage.setItem(
+        TODAY_STATE_KEY,
+        JSON.stringify(todayState)
+      );
+    } catch (err) {
+      console.error("Error saving today's check-in state", err);
+    }
+
+    navigate("/");
   }
 
   return (
     <div style={page}>
       <h1 style={title}>Daily Check-In</h1>
-      <p style={subtitle}>
-        Answer two sliders for each pillar. Then close with a quick note on
-        gratitude and kindness. Your responses update how your pillars glow and
-        how your Wellness Index feels on the Home screen.
-      </p>
 
-      {/* Emotional questions */}
-      <div style={section}>
-        <p style={pillarTitle}>Emotional reflections</p>
-        <QuestionSlider
-          text={emotionalText1}
-          value={emotionalQ1}
-          onChange={setEmotionalQ1}
-          anchors={[
-            "Heavy / overwhelmed",
-            "Mixed / manageable",
-            "Light / steady",
-          ]}
-        />
-        <QuestionSlider
-          text={emotionalText2}
-          value={emotionalQ2}
-          onChange={setEmotionalQ2}
-          anchors={[
-            "Heavy / overwhelmed",
-            "Mixed / manageable",
-            "Light / steady",
-          ]}
-        />
+      {/* Period reminder card ABOVE first question */}
+      <div style={periodCard}>
+        <div style={periodTitle}>CYCLE OVERVIEW</div>
+        <div>
+          <strong>Last period start:</strong>{" "}
+          {lastPeriodStart ? lastPeriodStart : "Not set"}
+        </div>
+        <div style={{ marginTop: "4px" }}>
+          <strong>Next expected period:</strong>{" "}
+          {nextPeriodStart ? nextPeriodStart : "Not set"}
+        </div>
       </div>
 
-      {/* Physical questions */}
-      <div style={section}>
-        <p style={pillarTitle}>Physical reflections</p>
-        <QuestionSlider
-          text={physicalText1}
-          value={physicalQ1}
-          onChange={setPhysicalQ1}
-          anchors={["Drained / tense", "Okay", "Energized / strong"]}
-        />
-        <QuestionSlider
-          text={physicalText2}
-          value={physicalQ2}
-          onChange={setPhysicalQ2}
-          anchors={["Drained / tense", "Okay", "Energized / strong"]}
-        />
-      </div>
+      {/* Emotional */}
+      <PillarSection
+        title="Emotional"
+        question={emotionalQuestion}
+        value={emotional}
+        onChange={setEmotional}
+        leftLabel="Low"
+        rightLabel="Steady"
+      />
 
-      {/* Spiritual questions */}
-      <div style={section}>
-        <p style={pillarTitle}>Spiritual reflections</p>
-        <QuestionSlider
-          text={spiritualText1}
-          value={spiritualQ1}
-          onChange={setSpiritualQ1}
-          anchors={["Disconnected", "Unsure", "Connected / in tune"]}
-        />
-        <QuestionSlider
-          text={spiritualText2}
-          value={spiritualQ2}
-          onChange={setSpiritualQ2}
-          anchors={["Disconnected", "Unsure", "Connected / in tune"]}
-        />
-      </div>
+      {/* Physical */}
+      <PillarSection
+        title="Physical"
+        question={physicalQuestion}
+        value={physical}
+        onChange={setPhysical}
+        leftLabel="Drained"
+        rightLabel="Energized"
+      />
 
-      {/* Financial questions */}
-      <div style={section}>
-        <p style={pillarTitle}>Financial reflections</p>
-        <QuestionSlider
-          text={financialText1}
-          value={financialQ1}
-          onChange={setFinancialQ1}
-          anchors={["On edge / stressed", "Managing", "Steady / secure"]}
-        />
-        <QuestionSlider
-          text={financialText2}
-          value={financialQ2}
-          onChange={setFinancialQ2}
-          anchors={["On edge / stressed", "Managing", "Steady / secure"]}
-        />
-      </div>
+      {/* Spiritual */}
+      <PillarSection
+        title="Spiritual"
+        question={spiritualQuestion}
+        value={spiritual}
+        onChange={setSpiritual}
+        leftLabel="Disconnected"
+        rightLabel="Connected"
+      />
 
-      {/* Gratitude & Good Deeds at the end */}
-      <div style={section}>
-        <p style={label}>Gratitude & kindness</p>
+      {/* Financial */}
+      <PillarSection
+        title="Financial"
+        question={financialQuestion}
+        value={financial}
+        onChange={setFinancial}
+        leftLabel="Stressed"
+        rightLabel="Secure"
+      />
 
-        <p style={{ fontSize: "13px", marginBottom: "6px" }}>Gratitude</p>
-        <select
-          style={select}
-          value={gratitude}
-          onChange={(e) => setGratitude(e.target.value)}
-        >
-          <option value="">Choose one (or leave blank)</option>
-          <option value="connection">A person or connection</option>
-          <option value="body">Something your body allowed you to do</option>
-          <option value="opportunity">An opportunity that showed up</option>
-          <option value="small-moment">A small, ordinary moment</option>
-        </select>
+      {/* Digital */}
+      <PillarSection
+        title="Digital"
+        question={digitalQuestion}
+        value={digital}
+        onChange={setDigital}
+        leftLabel="Overloaded"
+        rightLabel="Balanced"
+      />
 
-        <p style={smallLabel}>Want to add your own?</p>
+      {/* Micro-journal (separate block) */}
+      <div style={journalSection}>
+        <p style={journalLabel}>Mini reflection</p>
+        <p style={journalQuestion}>What stood out to you today?</p>
         <textarea
-          style={noteArea}
-          placeholder="Write your own gratitude reflection..."
-          value={gratitudeNote}
-          onChange={(e) => setGratitudeNote(e.target.value)}
-        />
-
-        <p
-          style={{
-            fontSize: "13px",
-            marginTop: "14px",
-            marginBottom: "6px",
-          }}
-        >
-          Good deed / kindness
-        </p>
-        <select
-          style={select}
-          value={goodDeed}
-          onChange={(e) => setGoodDeed(e.target.value)}
-        >
-          <option value="">Choose one (or leave blank)</option>
-          <option value="for-someone-else">
-            Did something kind for someone
-          </option>
-          <option value="for-yourself">Did something kind for yourself</option>
-          <option value="listened">Really listened to someone</option>
-          <option value="support">Offered support or encouragement</option>
-        </select>
-
-        <p style={smallLabel}>Want to describe it?</p>
-        <textarea
-          style={noteArea}
-          placeholder="Describe your act of kindness..."
-          value={goodDeedNote}
-          onChange={(e) => setGoodDeedNote(e.target.value)}
+          style={journalArea}
+          value={reflection}
+          onChange={(e) => setReflection(e.target.value)}
         />
       </div>
 
       <button type="button" style={saveButton} onClick={handleSave}>
-        Save Check-In
+        Complete check-in
       </button>
     </div>
   );
