@@ -1,7 +1,12 @@
 // src/App.jsx
 
 import React from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import {
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
 
 import Home from "./pages/Home";
 import DailyCheckinPage from "./pages/DailyCheckinPage";
@@ -10,34 +15,36 @@ import Journal from "./pages/Journal";
 import CycleTracking from "./pages/CycleTracking";
 import Account from "./pages/Account";
 import Onboarding from "./pages/Onboarding";
-
-// ⭐ Pillar Detail
 import PillarDetail from "./pages/PillarDetail";
-
-// ⭐ NEW — Why patterns take two weeks
 import InsightsWhy from "./pages/InsightsWhy";
-
+import Landing from "./pages/Landing";
 import BottomNav from "./components/BottomNav";
 
 export default function App() {
+  const location = useLocation();
+
   const appContainer = {
     minHeight: "100vh",
     backgroundColor: "#020617",
     color: "#f9fafb",
-    paddingBottom: "72px", // space for the fixed bottom nav
+    paddingBottom: "72px", // space for the fixed bottom nav (when shown)
     boxSizing: "border-box",
   };
+
+  // Hide the in-app bottom nav on the public landing page
+  const hideBottomNav = location.pathname === "/";
 
   return (
     <div style={appContainer}>
       <Routes>
-        {/* Default route -> Home */}
-        <Route path="/" element={<Home />} />
+        {/* Public marketing / landing page */}
+        <Route path="/" element={<Landing />} />
 
-        {/* Redirect /home to / */}
-        <Route path="/home" element={<Navigate to="/" replace />} />
+        {/* Core app lives under /app */}
+        <Route path="/app" element={<Home />} />
+        <Route path="/home" element={<Navigate to="/app" replace />} />
 
-        {/* Core app pages */}
+        {/* App pages */}
         <Route path="/check-in" element={<DailyCheckinPage />} />
         <Route path="/insights" element={<Insights />} />
         <Route path="/journal" element={<Journal />} />
@@ -45,18 +52,16 @@ export default function App() {
         <Route path="/account" element={<Account />} />
         <Route path="/onboarding" element={<Onboarding />} />
 
-        {/* ⭐ Full pillar detail page */}
+        {/* Pillar detail + insights explainer */}
         <Route path="/pillar/:pillarId" element={<PillarDetail />} />
-
-        {/* ⭐ NEW — Why this takes about two weeks */}
         <Route path="/insights-why" element={<InsightsWhy />} />
 
-        {/* Catch-all fallback */}
+        {/* Catch-all: send unknown routes to landing */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
-      {/* Always show bottom nav */}
-      <BottomNav />
+      {/* Show bottom nav only inside the app, not on the public landing */}
+      {!hideBottomNav && <BottomNav />}
     </div>
   );
 }
