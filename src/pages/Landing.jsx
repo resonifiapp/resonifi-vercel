@@ -10,7 +10,8 @@ export default function Landing() {
     minHeight: "100vh",
     background:
       "radial-gradient(circle at top, #0b1120, #020617 55%, #020617 100%)",
-    padding: "32px 20px 48px",
+    // ⬆️ slightly more breathing room top & bottom
+    padding: "48px 20px 56px",
     color: "#f1f5f9",
     fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
     display: "flex",
@@ -31,7 +32,7 @@ export default function Landing() {
     gap: "16px",
   };
 
-  // ⭐ UPDATED LOGO SIZE (hero size)
+  // Hero-sized logo
   const logoImg = {
     height: "128px",
   };
@@ -49,7 +50,8 @@ export default function Landing() {
   };
 
   const mainRow = {
-    marginTop: "48px",
+    // ⬆️ a little more space between header + main content
+    marginTop: "56px",
     display: "flex",
     gap: "28px",
     alignItems: "stretch",
@@ -120,6 +122,8 @@ export default function Landing() {
     fontSize: "12px",
     color: "#9ca3af",
     maxWidth: "34rem",
+    // ⬆️ friendlier to read on mobile
+    lineHeight: 1.6,
   };
 
   const card = {
@@ -237,11 +241,19 @@ export default function Landing() {
             </p>
 
             <div style={buttons}>
-              <button type="button" style={primaryBtn} onClick={() => navigate("/app")}>
+              <button
+                type="button"
+                style={primaryBtn}
+                onClick={() => navigate("/app")}
+              >
                 Open the app
               </button>
 
-              <button type="button" style={secondaryBtn} onClick={() => navigate("/insights")}>
+              <button
+                type="button"
+                style={secondaryBtn}
+                onClick={() => navigate("/insights")}
+              >
                 See how it works
               </button>
             </div>
@@ -272,19 +284,19 @@ export default function Landing() {
                 </div>
 
                 <div>
-                  <p style={ringCaptionTop}>Today's snapshot</p>
+                  <p style={ringCaptionTop}>Today&apos;s snapshot</p>
                   <p style={ringCaptionBottom}>Wellness Index™</p>
                 </div>
               </div>
 
               <p style={pillarList}>
-                <strong>Emotional</strong> — mood, stress, resilience  
+                <strong>Emotional</strong> — mood, stress, resilience
                 <br />
-                <strong>Physical</strong> — energy, rest  
+                <strong>Physical</strong> — energy, rest
                 <br />
-                <strong>Spiritual</strong> — meaning, purpose  
+                <strong>Spiritual</strong> — meaning, purpose
                 <br />
-                <strong>Financial</strong> — stability, confidence  
+                <strong>Financial</strong> — stability, confidence
                 <br />
                 <strong>Digital</strong> — screen time, balance
               </p>
