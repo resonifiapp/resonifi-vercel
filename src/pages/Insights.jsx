@@ -1,11 +1,12 @@
 // src/pages/Insights.jsx
 
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 /* ---------- Constants ---------- */
 
 const HISTORY_KEY = "resonifi_checkins_v1";
+const CYCLE_ENABLED_KEY = "resonifi_cycle_enabled_v1"; // must match Account / Check-in
 
 const PILLARS = [
   { key: "emotional", label: "Emotional" },
@@ -36,6 +37,7 @@ function formatDate(value) {
 
 function loadEntries() {
   try {
+    if (typeof window === "undefined") return [];
     const raw = window.localStorage.getItem(HISTORY_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
@@ -119,7 +121,7 @@ function computeAverages(entries, daysWindow = 14) {
 }
 
 function computeTrends(entries) {
-  // Very simple trend logic: compare last 3 vs previous 3
+  // compare last 3 vs previous 3
   if (entries.length < 4) {
     return {
       rising: [],
@@ -174,11 +176,38 @@ function computeTrends(entries) {
   return { rising, needsCare, steady, waiting };
 }
 
+// 🔸 Robust checker for the toggle value in localStorage
+function readCycleEnabled() {
+  try {
+    if (typeof window === "undefined") return false;
+    const raw = window.localStorage.getItem(CYCLE_ENABLED_KEY);
+    if (raw == null) return false;
+
+    const normalized = String(raw).trim().toLowerCase();
+    if (["true", "yes", "on", "1", "enabled"].includes(normalized)) return true;
+    if (["false", "no", "off", "0", "disabled"].includes(normalized))
+      return false;
+
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed === true || parsed === "true") return true;
+      if (parsed === false || parsed === "false") return false;
+    } catch (_) {
+      // ignore JSON error
+    }
+
+    return false;
+  } catch (err) {
+    console.error("Error reading cycle enabled flag:", err);
+    return false;
+  }
+}
+
 /* ---------- Inline styles ---------- */
 
 const wrapper = {
   minHeight: "100vh",
-  backgroundColor: "#020617", // slate-950-ish
+  backgroundColor: "#020617",
   color: "#f9fafb",
 };
 
@@ -340,6 +369,12 @@ const cycleArrow = {
 
 export default function Insights() {
   const navigate = useNavigate();
+  const [cycleEnabled, setCycleEnabled] = useState(false);
+
+  useEffect(() => {
+    const enabled = readCycleEnabled();
+    setCycleEnabled(enabled);
+  }, []);
 
   const { avgIndex, pillarAverages, usedDays, recentEntries, allTrends } =
     useMemo(() => {
@@ -371,7 +406,7 @@ export default function Insights() {
   const { rising, needsCare, waiting } = allTrends;
   const hasHistory = recentEntries.length > 0;
 
-  // Build the single horizontal Wellness Categories line
+  // Single horizontal Wellness Categories line
   const wellnessCategoriesLine = PILLARS.map((p) => {
     const avg = pillarAverages[p.key];
     const value = avg != null ? `${avg.toFixed(1)}/10` : "—/10";
@@ -393,7 +428,7 @@ export default function Insights() {
         <section style={gridTwo}>
           {/* Average index */}
           <div style={card}>
-            <p style={labelCaps}>Average Wellness Index</p>
+            <p style={labelCaps}>Average Wellness Index™</p>
             <p style={bigNumber}>
               {avgIndex != null ? avgIndex.toFixed(1) : "—"}
             </p>
@@ -409,8 +444,11 @@ export default function Insights() {
             </p>
           </div>
 
-          {/* Patterns at a glance (NOT a full-card link anymore) */}
-          <div style={card}>
+          {/* Patterns at a glance (CLICKABLE) */}
+          <div
+            style={{ ...card, cursor: "pointer" }}
+            onClick={() => navigate("/insights-why")}
+          >
             <p style={labelCaps}>Patterns at a glance</p>
 
             <p style={{ ...smallText, marginTop: 6 }}>
@@ -467,19 +505,16 @@ export default function Insights() {
               </p>
             </div>
 
-            {/* Tiny WHY link */}
             <p
               style={{
                 ...smallText,
                 marginTop: 10,
-                fontSize: 11,
-                color: "#7dd3fc",
-                cursor: "pointer",
-                textDecoration: "underline",
+                fontSize: 10,
+                textTransform: "uppercase",
+                letterSpacing: "0.08em",
               }}
-              onClick={() => navigate("/insights-why")}
             >
-              Why does this take about two weeks?
+              Tap to learn how these insights work
             </p>
           </div>
         </section>
@@ -526,7 +561,7 @@ export default function Insights() {
                   )}
                 </p>
                 <p style={recentIndex}>
-                  Wellness Index:{" "}
+                  Wellness Index™:{" "}
                   {entry.index != null
                     ? Number(entry.index).toFixed(1)
                     : entry.wellnessIndex != null
@@ -546,41 +581,45 @@ export default function Insights() {
           </div>
         </section>
 
-        {/* Cycle Tracking card */}
-        <section style={{ marginTop: 12 }}>
-          <button
-            type="button"
-            onClick={() => navigate("/cycle-tracking")}
-            style={{
-              width: "100%",
-              textAlign: "left",
-              border: "none",
-              background: "none",
-              padding: 0,
-            }}
-          >
-            <div style={cycleCardOuter}>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                <div>
-                  <p style={cycleOptional}>Optional</p>
-                  <h3 style={cycleTitle}>Cycle Tracking</h3>
-                  <p style={cycleBody}>
-                    Log cycles and see how they line up with your Wellness
-                    Index over time.
-                  </p>
+        {/* Cycle Tracking card – ONLY if user opted in */}
+        {cycleEnabled && (
+          <section style={{ marginTop: 12 }}>
+            <button
+              type="button"
+              onClick={() => navigate("/cycle-tracking")}
+              style={{
+                width: "100%",
+                textAlign: "left",
+                border: "none",
+                background: "none",
+                padding: 0,
+              }}
+            >
+              <div style={cycleCardOuter}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <div>
+                    <p style={cycleOptional}>Optional</p>
+                    <h3 style={cycleTitle}>Cycle Tracking</h3>
+                    <p style={cycleBody}>
+                      Log cycles and see how they line up with your Wellness
+                      Index™ over time.
+                    </p>
+                  </div>
+                  <div style={cycleArrow}>→</div>
                 </div>
-                <div style={cycleArrow}>→</div>
+                <p style={cycleFooter}>
+                  Tap to open the Cycle Tracking view.
+                </p>
               </div>
-              <p style={cycleFooter}>Tap to open the Cycle Tracking view.</p>
-            </div>
-          </button>
-        </section>
+            </button>
+          </section>
+        )}
       </main>
     </div>
   );

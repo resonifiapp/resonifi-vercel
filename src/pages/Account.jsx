@@ -6,6 +6,11 @@ import { useNavigate } from "react-router-dom";
 const NAME_KEY = "resonifi_user_name";
 const PHOTO_KEY = "resonifi_user_photo";
 
+// 🔸 Single source of truth for the cycle toggle key
+const CYCLE_ENABLED_KEY = "resonifi_cycle_enabled_v1";
+// (legacy key still written for safety)
+const CYCLE_ENABLED_LEGACY_KEY = "resonifi_cycle_enabled";
+
 export default function Account() {
   const navigate = useNavigate();
 
@@ -209,10 +214,13 @@ export default function Account() {
         setPhotoDataUrl(storedPhoto);
       }
 
-      // Cycle toggle
-      const rawCycle = window.localStorage.getItem("resonifi_cycle_enabled");
-      if (rawCycle !== null) {
-        setCycleEnabled(rawCycle === "true");
+      // Cycle toggle – prefer new key, fall back to legacy
+      let storedCycle = window.localStorage.getItem(CYCLE_ENABLED_KEY);
+      if (storedCycle === null) {
+        storedCycle = window.localStorage.getItem(CYCLE_ENABLED_LEGACY_KEY);
+      }
+      if (storedCycle !== null) {
+        setCycleEnabled(storedCycle === "true");
       }
     } catch {
       // ignore
@@ -222,10 +230,10 @@ export default function Account() {
   function handleToggleCycle(enabled) {
     setCycleEnabled(enabled);
     try {
-      window.localStorage.setItem(
-        "resonifi_cycle_enabled",
-        enabled ? "true" : "false"
-      );
+      const value = enabled ? "true" : "false";
+      // write both keys so everything stays in sync
+      window.localStorage.setItem(CYCLE_ENABLED_KEY, value);
+      window.localStorage.setItem(CYCLE_ENABLED_LEGACY_KEY, value);
     } catch {
       // ignore
     }
@@ -286,8 +294,8 @@ export default function Account() {
           <div style={profileTextCol}>
             <p style={cardTitle}>Your profile on this device</p>
             <p style={{ ...cardBody, marginTop: 2 }}>
-              Add a name and photo so your Home screen feels a little more
-              like you. This stays on this device only.
+              Add a name and photo so your Home screen feels a little more like
+              you. This stays on this device only.
             </p>
             <input
               type="text"
@@ -322,8 +330,7 @@ export default function Account() {
           <div>
             <p style={cardTitle}>Your device profile</p>
             <p style={{ ...cardBody, marginTop: 2 }}>
-              Resonifi stays focused on your daily check-ins, not your
-              identity.
+              Resonifi stays focused on your daily check-ins, not your identity.
             </p>
           </div>
         </div>
@@ -417,14 +424,14 @@ export default function Account() {
             account, and your data is not synced to a cloud service.
           </li>
           <li>
-            You&aposre always free to export or delete your data in future
+            You&apos;re always free to export or delete your data in future
             versions when those tools ship.
           </li>
         </ul>
         <p style={small}>
           Have questions or concerns about data? You can reach out to us at{" "}
-          <span style={link}>support@resonifi.app</span> and we&apos;ll give you
-          a direct, human answer.
+          <span style={link}>jp@resonifiapp.com</span> and we&apos;ll give you a
+          direct, human answer.
         </p>
       </section>
     </div>

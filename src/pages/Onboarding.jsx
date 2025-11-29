@@ -16,32 +16,33 @@ const steps = [
   },
   {
     id: 2,
-    title: "Your four pillars",
+    title: "Your five pillars",
     tag: "Framework",
-    body: "Every day, you check in on four core pillars of your life. Together, they make up your overall Wellness Index.",
+    body: "Every day, you check in on five core pillars of your life. Together, they make up your overall Wellness Index™.",
     bullets: [
       "Emotional – mood, stress, resilience, and your inner world",
       "Physical – energy, movement, rest, and how your body feels",
       "Spiritual – connection, meaning, purpose, and ‘bigger than me’",
       "Financial – stability, control, and confidence with money",
+      "Digital wellness – screen time, online noise, and your relationship with tech",
     ],
   },
   {
     id: 3,
-    title: "Daily check-ins & the Wellness Index",
+    title: "Daily check-ins & the Wellness Index™",
     tag: "How it works",
-    body: "Each check-in is a small snapshot of your day. Resonifi turns those snapshots into a simple Wellness Index you can feel, not obsess over.",
+    body: "Each check-in is a small snapshot of your day. Resonifi turns those snapshots into a simple Wellness Index™ you can feel, not obsess over.",
     bullets: [
       "Answer quick questions for each pillar using sliders",
-      "Add a note, gratitude, and a good deed if you like",
-      "Your latest check-in updates the Wellness Index on your Home screen",
+      "Add a short note or reflection if you like",
+      "Your latest check-in updates the Wellness Index™ on your Home screen",
     ],
   },
   {
     id: 4,
     title: "Your data, your pace",
     tag: "Safety & privacy",
-    body: "Resonifi is a reflection tool, not a crisis service and not an ad network. It’s here to help you notice patterns, not sell your information.",
+    body: "Resonifi is a reflection tool, not a crisis service. It’s here to help you notice patterns, not to turn your life into ad targeting.",
     bullets: [
       "Check-ins are stored privately in your own account on this device",
       "We don’t sell reproductive or wellness data — ever",
@@ -263,8 +264,10 @@ function Onboarding() {
                   padding: "0.55rem 0.9rem",
                   borderRadius: "999px",
                   border: "1px solid rgba(160, 160, 185, 0.6)",
-                  background: current === 0 ? "transparent" : "rgba(12, 18, 40, 0.9)",
-                  color: current === 0 ? "rgba(255,255,255,0.3)" : "#ffffff",
+                  background:
+                    current === 0 ? "transparent" : "rgba(12, 18, 40, 0.9)",
+                  color:
+                    current === 0 ? "rgba(255,255,255,0.3)" : "#ffffff",
                   cursor: current === 0 ? "default" : "pointer",
                   fontSize: "0.8rem",
                 }}

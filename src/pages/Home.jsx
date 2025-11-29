@@ -249,7 +249,7 @@ export default function Home() {
       </div>
 
       {/* Label outside the circle */}
-      <div style={ballLabelOutside}>WELLNESS INDEX</div>
+      <div style={ballLabelOutside}>WELLNESS INDEX™</div>
 
       {/* Pillars */}
       <section style={pillarsRow}>
