@@ -6,12 +6,15 @@ import logo from "../assets/resonifi-logo.png";
 export default function Landing() {
   const navigate = useNavigate();
 
+  // Very simple mobile check – this app is client-side only so it's safe
+  const isMobile =
+    typeof window !== "undefined" && window.innerWidth < 768;
+
   const page = {
     minHeight: "100vh",
     background:
       "radial-gradient(circle at top, #0b1120, #020617 55%, #020617 100%)",
-    // ⬆️ slightly more breathing room top & bottom
-    padding: "48px 20px 56px",
+    padding: isMobile ? "24px 16px 40px" : "32px 20px 48px",
     color: "#f1f5f9",
     fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
     display: "flex",
@@ -30,11 +33,13 @@ export default function Landing() {
     justifyContent: "space-between",
     alignItems: "center",
     gap: "16px",
+    flexDirection: isMobile ? "column" : "row",
+    alignSelf: isMobile ? "flex-start" : "stretch",
   };
 
-  // Hero-sized logo
+  // Bigger logo
   const logoImg = {
-    height: "128px",
+    height: isMobile ? "96px" : "128px",
   };
 
   const pill = {
@@ -47,13 +52,14 @@ export default function Landing() {
     background: "rgba(15,23,42,0.9)",
     color: "#cbd5e1",
     whiteSpace: "nowrap",
+    alignSelf: isMobile ? "flex-start" : "auto",
   };
 
   const mainRow = {
-    // ⬆️ a little more space between header + main content
-    marginTop: "56px",
+    marginTop: isMobile ? "32px" : "48px",
     display: "flex",
-    gap: "28px",
+    flexDirection: isMobile ? "column" : "row",
+    gap: isMobile ? "32px" : "28px",
     alignItems: "stretch",
   };
 
@@ -76,7 +82,7 @@ export default function Landing() {
 
   const h1 = {
     marginTop: "10px",
-    fontSize: "32px",
+    fontSize: isMobile ? "28px" : "32px",
     lineHeight: 1.2,
     fontWeight: 700,
   };
@@ -122,8 +128,6 @@ export default function Landing() {
     fontSize: "12px",
     color: "#9ca3af",
     maxWidth: "34rem",
-    // ⬆️ friendlier to read on mobile
-    lineHeight: 1.6,
   };
 
   const card = {
@@ -209,7 +213,7 @@ export default function Landing() {
   };
 
   const footer = {
-    marginTop: "40px",
+    marginTop: isMobile ? "32px" : "40px",
     fontSize: "11px",
     color: "#64748b",
     textAlign: "center",
@@ -221,7 +225,7 @@ export default function Landing() {
         {/* Top row */}
         <div style={topRow}>
           <img src={logo} alt="Resonifi logo" style={logoImg} />
-          <div style={pill}>Early access · Personal wellness OS</div>
+          <div style={pill}>EARLY ACCESS · PERSONAL WELLNESS OS</div>
         </div>
 
         {/* Main row */}
@@ -269,7 +273,7 @@ export default function Landing() {
           {/* RIGHT CARD */}
           <div style={cardCol}>
             <div style={card}>
-              <p style={cardLabel}>At a glance</p>
+              <p style={cardLabel}>AT A GLANCE</p>
               <h2 style={cardTitle}>What is the Wellness Index?</h2>
 
               <p style={cardBody}>
@@ -284,8 +288,8 @@ export default function Landing() {
                 </div>
 
                 <div>
-                  <p style={ringCaptionTop}>Today&apos;s snapshot</p>
-                  <p style={ringCaptionBottom}>Wellness Index™</p>
+                  <p style={ringCaptionTop}>TODAY&apos;S SNAPSHOT</p>
+                  <p style={ringCaptionBottom}>WELLNESS INDEX™</p>
                 </div>
               </div>
 
