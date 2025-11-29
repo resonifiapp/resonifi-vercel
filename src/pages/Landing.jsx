@@ -44,12 +44,12 @@ export default function Landing() {
     margin: "0 auto",
   };
 
-  // Header row – logo + Early Access badge
+  // HEADER: logo + Early Access badge grouped together
   const topRow = {
     display: "flex",
-    justifyContent: "space-between",
+    justifyContent: "flex-start",          // group on the left
     alignItems: "center",
-    gap: isMobile ? "12px" : "16px",
+    gap: isMobile ? "16px" : "20px",       // space *between* logo and badge
     flexDirection: "row",
     width: "100%",
     padding: isMobile ? "0 8px" : "0 4px",
@@ -62,7 +62,7 @@ export default function Landing() {
     objectFit: "contain",
   };
 
-  // Badge: square stacked box on mobile, pill on desktop
+  // Badge: stacked box on mobile, pill on desktop
   const pill = {
     fontSize: isMobile ? "10px" : "11px",
     letterSpacing: "0.12em",
