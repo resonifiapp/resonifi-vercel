@@ -44,18 +44,20 @@ export default function Landing() {
     margin: "0 auto",
   };
 
-  // Header row: always side-by-side
+  // HEADER ROW — always horizontal
   const topRow = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
     gap: "16px",
-    flexDirection: "row", // always a row (desktop + mobile)
+    flexDirection: "row",
     width: "100%",
+    padding: "0 12px",
+    boxSizing: "border-box",
   };
 
   const logoImg = {
-    height: isMobile ? "96px" : "128px",
+    height: isMobile ? "170px" : "200px",
     width: "auto",
     objectFit: "contain",
   };
@@ -70,7 +72,7 @@ export default function Landing() {
     background: "rgba(15,23,42,0.9)",
     color: "#cbd5e1",
     whiteSpace: "nowrap",
-    alignSelf: "auto",
+    minWidth: "fit-content",
   };
 
   const mainRow = {
@@ -142,10 +144,11 @@ export default function Landing() {
   };
 
   const founderLine = {
-    marginTop: "18px",
+    marginTop: "24px",
     fontSize: "12px",
     color: "#9ca3af",
-    maxWidth: "34rem",
+    maxWidth: "36rem",
+    textAlign: isMobile ? "left" : "left",
   };
 
   const card = {
@@ -184,7 +187,6 @@ export default function Landing() {
     gap: "16px",
   };
 
-  // HARD-LOCKED circle
   const ringOuter = {
     width: "90px",
     aspectRatio: "1 / 1",
@@ -242,15 +244,15 @@ export default function Landing() {
   return (
     <div style={page}>
       <div style={frame}>
-        {/* Top row */}
+        {/* HEADER */}
         <div style={topRow}>
           <img src={logo} alt="Resonifi logo" style={logoImg} />
           <div style={pill}>EARLY ACCESS · PERSONAL WELLNESS OS</div>
         </div>
 
-        {/* Main row */}
+        {/* MAIN */}
         <div style={mainRow}>
-          {/* LEFT */}
+          {/* LEFT COLUMN */}
           <div style={heroCol}>
             <p style={tag}>FOR PEOPLE WHO FEEL MORE THAN THEY TRACK</p>
 
@@ -281,13 +283,6 @@ export default function Landing() {
                 See how it works
               </button>
             </div>
-
-            <p style={founderLine}>
-              Built by a teacher who walked the Camino and wanted a calmer way
-              to look at life than another productivity dashboard. No
-              gamification, no streak shame — just honest check-ins that add up
-              over time.
-            </p>
           </div>
 
           {/* RIGHT CARD */}
@@ -327,6 +322,13 @@ export default function Landing() {
             </div>
           </div>
         </div>
+
+        {/* MOVED FOUNDER LINE HERE */}
+        <p style={founderLine}>
+          Built by a teacher who walked the Camino and wanted a calmer way to
+          look at life than another productivity dashboard. No gamification, no
+          streak shame — just honest check-ins that add up over time.
+        </p>
 
         <p style={footer}>© 2025 Resonifi. All rights reserved.</p>
       </div>
