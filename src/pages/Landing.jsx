@@ -31,8 +31,9 @@ export default function Landing() {
     gap: "16px",
   };
 
+  // ⭐ UPDATED LOGO SIZE (hero size)
   const logoImg = {
-    height: "54px",
+    height: "128px",
   };
 
   const pill = {
@@ -213,16 +214,15 @@ export default function Landing() {
   return (
     <div style={page}>
       <div style={frame}>
-        {/* Top row: logo + badge */}
+        {/* Top row */}
         <div style={topRow}>
           <img src={logo} alt="Resonifi logo" style={logoImg} />
-
           <div style={pill}>Early access · Personal wellness OS</div>
         </div>
 
-        {/* Main row: hero + right card */}
+        {/* Main row */}
         <div style={mainRow}>
-          {/* HERO LEFT */}
+          {/* LEFT */}
           <div style={heroCol}>
             <p style={tag}>FOR PEOPLE WHO FEEL MORE THAN THEY TRACK</p>
 
@@ -237,19 +237,11 @@ export default function Landing() {
             </p>
 
             <div style={buttons}>
-              <button
-                type="button"
-                style={primaryBtn}
-                onClick={() => navigate("/app")}
-              >
+              <button type="button" style={primaryBtn} onClick={() => navigate("/app")}>
                 Open the app
               </button>
 
-              <button
-                type="button"
-                style={secondaryBtn}
-                onClick={() => navigate("/insights")}
-              >
+              <button type="button" style={secondaryBtn} onClick={() => navigate("/insights")}>
                 See how it works
               </button>
             </div>
@@ -280,29 +272,28 @@ export default function Landing() {
                 </div>
 
                 <div>
-                  <p style={ringCaptionTop}>Today&#39;s snapshot</p>
+                  <p style={ringCaptionTop}>Today's snapshot</p>
                   <p style={ringCaptionBottom}>Wellness Index™</p>
                 </div>
               </div>
 
               <p style={pillarList}>
-                <strong>Emotional</strong> — mood, stress, resilience, your inner
-                world
+                <strong>Emotional</strong> — mood, stress, resilience  
                 <br />
-                <strong>Physical</strong> — energy, rest, how your body feels
+                <strong>Physical</strong> — energy, rest  
                 <br />
-                <strong>Spiritual</strong> — meaning, purpose, “bigger than me”
+                <strong>Spiritual</strong> — meaning, purpose  
                 <br />
-                <strong>Financial</strong> — stability, control, confidence
+                <strong>Financial</strong> — stability, confidence  
                 <br />
-                <strong>Digital</strong> — screen time, noise, and tech balance
+                <strong>Digital</strong> — screen time, balance
               </p>
             </div>
           </div>
         </div>
 
         <p style={footer}>© 2025 Resonifi. All rights reserved.</p>
-        </div>
+      </div>
     </div>
   );
 }

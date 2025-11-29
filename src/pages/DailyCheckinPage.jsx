@@ -1,13 +1,16 @@
 // src/pages/DailyCheckinPage.jsx
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 const HISTORY_KEY = "resonifi_checkins_v1";
 const TODAY_STATE_KEY = "resonifi_today_checkin_v1";
 
-// 🔸 This is the SAME key CycleTracking.jsx uses
+// 🔸 Same config store as CycleTracking.jsx (cycle data)
 const CYCLE_STORAGE_KEY = "resonifi_cycle_v1";
+
+// 🔸 Feature toggle set in Account / Onboarding
+const CYCLE_ENABLED_KEY = "resonifi_cycle_enabled_v1";
 
 // --- Cycle helpers (mirrors CycleTracking.jsx) ---
 const DEFAULT_CYCLE_LENGTH = 28;
@@ -153,6 +156,35 @@ function pickOneFromBank(bank, offset = 0) {
   return bank[index];
 }
 
+// 🔸 Robust checker for the toggle value in localStorage
+function readCycleEnabled() {
+  try {
+    if (typeof window === "undefined") return false;
+    const raw = window.localStorage.getItem(CYCLE_ENABLED_KEY);
+    if (raw == null) return false;
+
+    // Direct string checks
+    const normalized = String(raw).trim().toLowerCase();
+    if (["true", "yes", "on", "1", "enabled"].includes(normalized)) return true;
+    if (["false", "no", "off", "0", "disabled"].includes(normalized))
+      return false;
+
+    // Try JSON parse (for boolean true/false)
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed === true || parsed === "true") return true;
+      if (parsed === false || parsed === "false") return false;
+    } catch (_) {
+      // ignore JSON error, fall through
+    }
+
+    return false;
+  } catch (err) {
+    console.error("Error reading cycle enabled flag:", err);
+    return false;
+  }
+}
+
 // Reusable pillar section
 function PillarSection({
   title,
@@ -235,6 +267,9 @@ export default function DailyCheckinPage() {
   const [lastPeriodStart, setLastPeriodStart] = useState(null);
   const [nextPeriodStart, setNextPeriodStart] = useState(null);
 
+  // Feature toggle
+  const [cycleEnabled, setCycleEnabled] = useState(false);
+
   // Today’s questions (one per pillar)
   const emotionalQuestion = pickOneFromBank(EMOTIONAL_QUESTIONS, 0);
   const physicalQuestion = pickOneFromBank(PHYSICAL_QUESTIONS, 11);
@@ -244,7 +279,7 @@ export default function DailyCheckinPage() {
 
   // Load today's saved state & cycle info
   useEffect(() => {
-    // Today state (sliders + mini reflection)
+    // 1) Today state (sliders + mini reflection)
     try {
       const raw = window.localStorage.getItem(TODAY_STATE_KEY);
       if (raw) {
@@ -264,7 +299,13 @@ export default function DailyCheckinPage() {
       console.error("Error loading today's check-in state", err);
     }
 
-    // Cycle info – mirror CycleTracking storage
+    // 2) Check if cycle feature is enabled (robust)
+    const enabled = readCycleEnabled();
+    setCycleEnabled(enabled);
+
+    // 3) Only load cycle summary if feature is enabled
+    if (!enabled) return;
+
     try {
       const rawCycle = window.localStorage.getItem(CYCLE_STORAGE_KEY);
       if (rawCycle) {
@@ -451,18 +492,20 @@ export default function DailyCheckinPage() {
     <div style={page}>
       <h1 style={title}>Daily Check-In</h1>
 
-      {/* Period reminder card ABOVE first question */}
-      <div style={periodCard}>
-        <div style={periodTitle}>CYCLE OVERVIEW</div>
-        <div>
-          <strong>Last period start:</strong>{" "}
-          {lastPeriodStart ? lastPeriodStart : "Not set"}
+      {/* Period reminder card ABOVE first question – ONLY if feature is enabled */}
+      {cycleEnabled && (
+        <div style={periodCard}>
+          <div style={periodTitle}>CYCLE OVERVIEW</div>
+          <div>
+            <strong>Last period start:</strong>{" "}
+            {lastPeriodStart ? lastPeriodStart : "Not set"}
+          </div>
+          <div style={{ marginTop: "4px" }}>
+            <strong>Next expected period:</strong>{" "}
+            {nextPeriodStart ? nextPeriodStart : "Not set"}
+          </div>
         </div>
-        <div style={{ marginTop: "4px" }}>
-          <strong>Next expected period:</strong>{" "}
-          {nextPeriodStart ? nextPeriodStart : "Not set"}
-        </div>
-      </div>
+      )}
 
       {/* Emotional */}
       <PillarSection
