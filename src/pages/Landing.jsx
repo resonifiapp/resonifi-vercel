@@ -1,7 +1,7 @@
 // src/pages/Landing.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import logo from "../assets/resonifi-logo.png";
+import logo from "../../assets/resonifi-logo.png";
 
 export default function Landing() {
   const navigate = useNavigate();
