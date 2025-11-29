@@ -1,14 +1,29 @@
 // src/pages/Landing.jsx
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/resonifi-logo.png";
 
+function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.innerWidth < breakpoint;
+  });
+
+  useEffect(() => {
+    function handleResize() {
+      setIsMobile(window.innerWidth < breakpoint);
+    }
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [breakpoint]);
+
+  return isMobile;
+}
+
 export default function Landing() {
   const navigate = useNavigate();
-
-  // Very simple mobile check – this app is client-side only so it's safe
-  const isMobile =
-    typeof window !== "undefined" && window.innerWidth < 768;
+  const isMobile = useIsMobile(768);
 
   const page = {
     minHeight: "100vh",
@@ -26,6 +41,7 @@ export default function Landing() {
   const frame = {
     width: "100%",
     maxWidth: "1040px",
+    margin: "0 auto",
   };
 
   const topRow = {
@@ -37,9 +53,10 @@ export default function Landing() {
     alignSelf: isMobile ? "flex-start" : "stretch",
   };
 
-  // Bigger logo
   const logoImg = {
     height: isMobile ? "96px" : "128px",
+    width: "auto",
+    objectFit: "contain",
   };
 
   const pill = {
@@ -161,26 +178,28 @@ export default function Landing() {
   const ringRow = {
     marginTop: "18px",
     display: "flex",
-    alignItems: "center",
+    alignItems: isMobile ? "flex-start" : "center",
+    flexDirection: isMobile ? "column" : "row",
     gap: "16px",
   };
 
+  // HARD-LOCKED circle
   const ringOuter = {
     width: "90px",
-    height: "90px",
-    borderRadius: "999px",
-    background:
-      "conic-gradient(#22d3ee, #6366f1, #22c55e, #22d3ee)",
+    aspectRatio: "1 / 1",
+    borderRadius: "50%",
+    background: "conic-gradient(#22d3ee, #6366f1, #22c55e, #22d3ee)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     boxShadow: "0 0 30px rgba(59,130,246,0.6)",
+    flexShrink: 0,
   };
 
   const ringInner = {
     width: "60px",
-    height: "60px",
-    borderRadius: "999px",
+    aspectRatio: "1 / 1",
+    borderRadius: "50%",
     backgroundColor: "#020617",
     display: "flex",
     alignItems: "center",
