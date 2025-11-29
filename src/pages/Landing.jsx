@@ -44,35 +44,39 @@ export default function Landing() {
     margin: "0 auto",
   };
 
-  // HEADER ROW — always horizontal
+  // Header row – logo + Early Access badge
   const topRow = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    gap: "16px",
+    gap: isMobile ? "12px" : "16px",
     flexDirection: "row",
     width: "100%",
-    padding: "0 12px",
+    padding: isMobile ? "0 8px" : "0 4px",
     boxSizing: "border-box",
   };
 
   const logoImg = {
-    height: isMobile ? "170px" : "200px",
+    height: isMobile ? "150px" : "200px",
     width: "auto",
     objectFit: "contain",
   };
 
+  // Badge: square stacked box on mobile, pill on desktop
   const pill = {
-    fontSize: "11px",
-    letterSpacing: "0.14em",
+    fontSize: isMobile ? "10px" : "11px",
+    letterSpacing: "0.12em",
     textTransform: "uppercase",
-    padding: "8px 14px",
-    borderRadius: "999px",
+    padding: isMobile ? "10px 12px" : "8px 14px",
+    borderRadius: isMobile ? "12px" : "999px",
     border: "1px solid rgba(148,163,184,0.45)",
     background: "rgba(15,23,42,0.9)",
     color: "#cbd5e1",
-    whiteSpace: "nowrap",
-    minWidth: "fit-content",
+    whiteSpace: isMobile ? "normal" : "nowrap",
+    lineHeight: isMobile ? 1.35 : 1,
+    textAlign: isMobile ? "center" : "left",
+    width: isMobile ? "120px" : "auto",
+    flexShrink: 0,
   };
 
   const mainRow = {
@@ -148,7 +152,7 @@ export default function Landing() {
     fontSize: "12px",
     color: "#9ca3af",
     maxWidth: "36rem",
-    textAlign: isMobile ? "left" : "left",
+    textAlign: "left",
   };
 
   const card = {
@@ -247,7 +251,19 @@ export default function Landing() {
         {/* HEADER */}
         <div style={topRow}>
           <img src={logo} alt="Resonifi logo" style={logoImg} />
-          <div style={pill}>EARLY ACCESS · PERSONAL WELLNESS OS</div>
+          <div style={pill}>
+            {isMobile ? (
+              <>
+                EARLY ACCESS
+                <br />
+                PERSONAL
+                <br />
+                WELLNESS OS
+              </>
+            ) : (
+              "EARLY ACCESS · PERSONAL WELLNESS OS"
+            )}
+          </div>
         </div>
 
         {/* MAIN */}
@@ -323,7 +339,7 @@ export default function Landing() {
           </div>
         </div>
 
-        {/* MOVED FOUNDER LINE HERE */}
+        {/* FOUNDER LINE UNDER CARD */}
         <p style={founderLine}>
           Built by a teacher who walked the Camino and wanted a calmer way to
           look at life than another productivity dashboard. No gamification, no
