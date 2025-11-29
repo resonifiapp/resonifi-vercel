@@ -44,13 +44,14 @@ export default function Landing() {
     margin: "0 auto",
   };
 
+  // Header row: always side-by-side
   const topRow = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
     gap: "16px",
-    flexDirection: isMobile ? "column" : "row",
-    alignSelf: isMobile ? "flex-start" : "stretch",
+    flexDirection: "row", // always a row (desktop + mobile)
+    width: "100%",
   };
 
   const logoImg = {
@@ -69,7 +70,7 @@ export default function Landing() {
     background: "rgba(15,23,42,0.9)",
     color: "#cbd5e1",
     whiteSpace: "nowrap",
-    alignSelf: isMobile ? "flex-start" : "auto",
+    alignSelf: "auto",
   };
 
   const mainRow = {
