@@ -23,15 +23,17 @@ export default function BottomNav() {
   };
 
   const items = [
-    { key: "home", label: "Home", icon: "🏠", path: "/" },
+    { key: "home", label: "Home", icon: "🏠", path: "/app" },
     { key: "checkin", label: "Check-in", icon: "✨", path: "/check-in" },
     { key: "insights", label: "Insights", icon: "📊", path: "/insights" },
     { key: "account", label: "Account", icon: "👤", path: "/account" },
   ];
 
   function isActive(path) {
-    if (path === "/") return location.pathname === "/";
-    return location.pathname.startsWith(path);
+    return (
+      location.pathname === path ||
+      location.pathname.startsWith(`${path}/`)
+    );
   }
 
   const buttonBase = {

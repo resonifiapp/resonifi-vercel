@@ -163,20 +163,16 @@ function readCycleEnabled() {
     const raw = window.localStorage.getItem(CYCLE_ENABLED_KEY);
     if (raw == null) return false;
 
-    // Direct string checks
     const normalized = String(raw).trim().toLowerCase();
     if (["true", "yes", "on", "1", "enabled"].includes(normalized)) return true;
     if (["false", "no", "off", "0", "disabled"].includes(normalized))
       return false;
 
-    // Try JSON parse (for boolean true/false)
     try {
       const parsed = JSON.parse(raw);
       if (parsed === true || parsed === "true") return true;
       if (parsed === false || parsed === "false") return false;
-    } catch (_) {
-      // ignore JSON error, fall through
-    }
+    } catch (_) {}
 
     return false;
   } catch (err) {
@@ -253,33 +249,26 @@ export default function DailyCheckinPage() {
   const navigate = useNavigate();
   const todayKey = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
 
-  // One slider per pillar (1–10)
   const [emotional, setEmotional] = useState(5);
   const [physical, setPhysical] = useState(5);
   const [spiritual, setSpiritual] = useState(5);
   const [financial, setFinancial] = useState(5);
   const [digital, setDigital] = useState(5);
 
-  // Micro-journal
   const [reflection, setReflection] = useState("");
 
-  // Period info (derived from same storage as CycleTracking)
   const [lastPeriodStart, setLastPeriodStart] = useState(null);
   const [nextPeriodStart, setNextPeriodStart] = useState(null);
 
-  // Feature toggle
   const [cycleEnabled, setCycleEnabled] = useState(false);
 
-  // Today’s questions (one per pillar)
   const emotionalQuestion = pickOneFromBank(EMOTIONAL_QUESTIONS, 0);
   const physicalQuestion = pickOneFromBank(PHYSICAL_QUESTIONS, 11);
   const spiritualQuestion = pickOneFromBank(SPIRITUAL_QUESTIONS, 23);
   const financialQuestion = pickOneFromBank(FINANCIAL_QUESTIONS, 37);
   const digitalQuestion = pickOneFromBank(DIGITAL_QUESTIONS, 51);
 
-  // Load today's saved state & cycle info
   useEffect(() => {
-    // 1) Today state (sliders + mini reflection)
     try {
       const raw = window.localStorage.getItem(TODAY_STATE_KEY);
       if (raw) {
@@ -299,11 +288,9 @@ export default function DailyCheckinPage() {
       console.error("Error loading today's check-in state", err);
     }
 
-    // 2) Check if cycle feature is enabled (robust)
     const enabled = readCycleEnabled();
     setCycleEnabled(enabled);
 
-    // 3) Only load cycle summary if feature is enabled
     if (!enabled) return;
 
     try {
@@ -330,8 +317,7 @@ export default function DailyCheckinPage() {
   const page = {
     backgroundColor: "#020617",
     color: "#f8fafc",
-    minHeight: "100vh",
-    padding: "24px 16px 90px",
+    padding: "24px 16px 24px",
     boxSizing: "border-box",
     fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
     maxWidth: "960px",
@@ -426,7 +412,6 @@ export default function DailyCheckinPage() {
 
     const overallIndex = Math.round((avg / 10) * 100); // 0–100 %
 
-    // Save % for Home.jsx
     try {
       window.localStorage.setItem(
         "resonifi_latest_index",
@@ -436,7 +421,6 @@ export default function DailyCheckinPage() {
       console.error("Error saving wellness index", err);
     }
 
-    // Save full check-in history
     try {
       const raw = window.localStorage.getItem(HISTORY_KEY);
       const existing = raw ? JSON.parse(raw) : [];
@@ -465,7 +449,6 @@ export default function DailyCheckinPage() {
       console.error("Error saving check-in history", err);
     }
 
-    // Save "today's state" so sliders & note stick until a new day
     try {
       const todayState = {
         date: todayKey,
@@ -485,14 +468,13 @@ export default function DailyCheckinPage() {
       console.error("Error saving today's check-in state", err);
     }
 
-    navigate("/");
+    navigate("/app");
   }
 
   return (
     <div style={page}>
       <h1 style={title}>Daily Check-In</h1>
 
-      {/* Period reminder card ABOVE first question – ONLY if feature is enabled */}
       {cycleEnabled && (
         <div style={periodCard}>
           <div style={periodTitle}>CYCLE OVERVIEW</div>
@@ -507,7 +489,6 @@ export default function DailyCheckinPage() {
         </div>
       )}
 
-      {/* Emotional */}
       <PillarSection
         title="Emotional"
         question={emotionalQuestion}
@@ -517,7 +498,6 @@ export default function DailyCheckinPage() {
         rightLabel="Steady"
       />
 
-      {/* Physical */}
       <PillarSection
         title="Physical"
         question={physicalQuestion}
@@ -527,7 +507,6 @@ export default function DailyCheckinPage() {
         rightLabel="Energized"
       />
 
-      {/* Spiritual */}
       <PillarSection
         title="Spiritual"
         question={spiritualQuestion}
@@ -537,7 +516,6 @@ export default function DailyCheckinPage() {
         rightLabel="Connected"
       />
 
-      {/* Financial */}
       <PillarSection
         title="Financial"
         question={financialQuestion}
@@ -547,7 +525,6 @@ export default function DailyCheckinPage() {
         rightLabel="Secure"
       />
 
-      {/* Digital */}
       <PillarSection
         title="Digital"
         question={digitalQuestion}
@@ -557,7 +534,6 @@ export default function DailyCheckinPage() {
         rightLabel="Balanced"
       />
 
-      {/* Micro-journal (separate block) */}
       <div style={journalSection}>
         <p style={journalLabel}>Mini reflection</p>
         <p style={journalQuestion}>What stood out to you today?</p>
