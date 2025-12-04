@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 const NAME_KEY = "resonifi_user_name";
-const PHOTO_KEY = "resonifi_user_photo";
 
 // 🔸 Single source of truth for the cycle toggle key
 const CYCLE_ENABLED_KEY = "resonifi_cycle_enabled_v1";
@@ -155,12 +154,6 @@ export default function Account() {
     flexShrink: 0,
   };
 
-  const avatarImg = {
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-  };
-
   const avatarInitial = {
     fontSize: "24px",
     fontWeight: 600,
@@ -183,22 +176,9 @@ export default function Account() {
     outline: "none",
   };
 
-  const uploadButton = {
-    marginTop: "8px",
-    padding: "6px 12px",
-    borderRadius: "999px",
-    border: "1px solid rgba(148,163,184,0.8)",
-    backgroundColor: "rgba(15,23,42,0.9)",
-    color: "#e5e7eb",
-    fontSize: "12px",
-    fontWeight: 500,
-    cursor: "pointer",
-  };
-
   // --- State ---
   const [cycleEnabled, setCycleEnabled] = useState(false);
   const [userName, setUserName] = useState("");
-  const [photoDataUrl, setPhotoDataUrl] = useState(null);
 
   useEffect(() => {
     try {
@@ -206,12 +186,6 @@ export default function Account() {
       const storedName = window.localStorage.getItem(NAME_KEY);
       if (storedName) {
         setUserName(storedName);
-      }
-
-      // Photo
-      const storedPhoto = window.localStorage.getItem(PHOTO_KEY);
-      if (storedPhoto) {
-        setPhotoDataUrl(storedPhoto);
       }
 
       // Cycle toggle – prefer new key, fall back to legacy
@@ -249,25 +223,6 @@ export default function Account() {
     }
   }
 
-  function handlePhotoChange(e) {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = reader.result;
-      if (typeof result === "string") {
-        setPhotoDataUrl(result);
-        try {
-          window.localStorage.setItem(PHOTO_KEY, result);
-        } catch {
-          // ignore
-        }
-      }
-    };
-    reader.readAsDataURL(file);
-  }
-
   const initialLetter =
     userName && userName.trim().length > 0
       ? userName.trim().charAt(0).toUpperCase()
@@ -281,21 +236,17 @@ export default function Account() {
         No login, no profile to manage — just the knobs that actually matter.
       </p>
 
-      {/* Profile card: name + photo */}
+      {/* Profile card: name only (no photo upload to avoid crashes) */}
       <section style={card}>
         <div style={profileRow}>
           <div style={avatarOuter}>
-            {photoDataUrl ? (
-              <img src={photoDataUrl} alt="Profile" style={avatarImg} />
-            ) : (
-              <span style={avatarInitial}>{initialLetter}</span>
-            )}
+            <span style={avatarInitial}>{initialLetter}</span>
           </div>
           <div style={profileTextCol}>
             <p style={cardTitle}>Your profile on this device</p>
             <p style={{ ...cardBody, marginTop: 2 }}>
-              Add a name and photo so your Home screen feels a little more like
-              you. This stays on this device only.
+              Add a name so your Home screen feels a little more like you. This
+              stays on this device only.
             </p>
             <input
               type="text"
@@ -304,20 +255,9 @@ export default function Account() {
               placeholder="Add your name"
               style={nameInput}
             />
-            <div style={{ marginTop: "8px" }}>
-              <label style={uploadButton}>
-                Choose photo
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoChange}
-                  style={{ display: "none" }}
-                />
-              </label>
-            </div>
             <p style={small}>
-              Your name and photo are stored locally in your browser&apos;s
-              storage. Clearing site data will remove them.
+              Your name is stored locally in your browser&apos;s storage.
+              Clearing site data will remove it.
             </p>
           </div>
         </div>
