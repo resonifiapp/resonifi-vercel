@@ -2,10 +2,22 @@
 
 import React, { useState, useEffect } from "react";
 
+/* 🔹 Plausible helper (safe call) */
+function track(eventName) {
+  if (typeof window !== "undefined" && window.plausible) {
+    window.plausible(eventName, { props: { ts: Date.now() } });
+  }
+}
+
 const JOURNAL_KEY = "resonifi_journal_entries_v1";
 
 export default function Journal() {
   const [entries, setEntries] = useState([]);
+
+  /* 🔹 Fire analytics event on page open */
+  useEffect(() => {
+    track("journal_page_opened");
+  }, []);
 
   useEffect(() => {
     try {

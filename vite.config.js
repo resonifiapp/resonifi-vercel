@@ -6,10 +6,11 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "src")
-    }
+      "@": path.resolve(__dirname, "src"),
+    },
   },
   server: {
-    port: 5173
-  }
+    host: true,   // 👈 allow access from your iPhone on the LAN
+    port: 5173,   // 👈 keep this matching capacitor.config.json
+  },
 });

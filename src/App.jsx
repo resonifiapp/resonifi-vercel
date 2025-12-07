@@ -1,13 +1,9 @@
 // src/App.jsx
-import AppShell from "./components/AppShell";
 
-import React from "react";
-import {
-  Routes,
-  Route,
-  Navigate,
-  useLocation,
-} from "react-router-dom";
+import React, { useEffect } from "react";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+
+import AppShell from "./components/AppShell";
 
 import Home from "./pages/Home";
 import DailyCheckinPage from "./pages/DailyCheckinPage";
@@ -19,16 +15,33 @@ import Onboarding from "./pages/Onboarding";
 import PillarDetail from "./pages/PillarDetail";
 import InsightsWhy from "./pages/InsightsWhy";
 import Landing from "./pages/Landing";
-import BottomNav from "./components/BottomNav";
 
 export default function App() {
   const location = useLocation();
+
+  // Fire Plausible pageview on route change
+  useEffect(() => {
+    try {
+      if (
+        typeof window !== "undefined" &&
+        typeof window.plausible === "function"
+      ) {
+        window.plausible("pageview", {
+          props: {
+            path: location.pathname,
+          },
+        });
+      }
+    } catch (err) {
+      console.error("Plausible tracking error:", err);
+    }
+  }, [location.pathname, location.search]);
 
   // Hide the in-app bottom nav on the public landing page
   const hideBottomNav = location.pathname === "/";
 
   return (
-    <AppShell>
+    <AppShell hideBottomNav={hideBottomNav}>
       <Routes>
         {/* Public marketing / landing page */}
         <Route path="/" element={<Landing />} />
@@ -52,9 +65,6 @@ export default function App() {
         {/* Catch-all: send unknown routes to app home */}
         <Route path="*" element={<Navigate to="/app" replace />} />
       </Routes>
-
-      {/* Show bottom nav only inside the app, not on the public landing */}
-      {!hideBottomNav && <BottomNav />}
     </AppShell>
   );
 }

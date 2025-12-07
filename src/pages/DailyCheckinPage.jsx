@@ -468,6 +468,10 @@ export default function DailyCheckinPage() {
       console.error("Error saving today's check-in state", err);
     }
 
+    if (typeof window !== "undefined" && window.plausible) {
+      window.plausible("Check-in Completed");
+    }
+
     navigate("/app");
   }
 

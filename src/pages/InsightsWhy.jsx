@@ -1,10 +1,17 @@
 // src/pages/InsightsWhy.jsx
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function InsightsWhy() {
   const navigate = useNavigate();
+
+  // 🔸 Plausible tracking
+  useEffect(() => {
+    if (typeof window.plausible === "function") {
+      window.plausible("view_insights_why");
+    }
+  }, []);
 
   const wrapper = {
     minHeight: "100vh",
@@ -68,9 +75,7 @@ export default function InsightsWhy() {
         </p>
 
         <section>
-          <h2 style={sectionTitle}>
-            1. It looks at about two weeks of check-ins
-          </h2>
+          <h2 style={sectionTitle}>1. It looks at about two weeks of check-ins</h2>
           <p style={text}>
             The Insights page focuses on roughly the last couple of weeks.
             Life is noisy. You might miss a day, have a great weekend, or go
@@ -91,9 +96,7 @@ export default function InsightsWhy() {
         </section>
 
         <section>
-          <h2 style={sectionTitle}>
-            3. It protects you from noisy “insights”
-          </h2>
+          <h2 style={sectionTitle}>3. It protects you from noisy “insights”</h2>
           <p style={text}>
             Without enough history, almost any day can look like a trend.
             That is why Resonifi waits until there is at least a bit of

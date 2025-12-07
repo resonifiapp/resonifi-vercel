@@ -1,4 +1,5 @@
 // src/pages/Home.jsx
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -19,6 +20,13 @@ export default function Home() {
   const [latest, setLatest] = useState(null);
   const [indexValue, setIndexValue] = useState(null);
   const [userName, setUserName] = useState("");
+
+  // 🔹 Plausible: app home opened
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.plausible) {
+      window.plausible("App Opened");
+    }
+  }, []);
 
   // Load latest check-in and index
   useEffect(() => {
@@ -231,9 +239,12 @@ export default function Home() {
   return (
     <div style={container}>
       <header>
-        <h1 style={headerTitle}>Home</h1>
+        <h1 style={headerTitle}>
+          SAFE AREA TEST – HOW DO YOU FEEL TODAY, {userName || "there"}?
+        </h1>
         <p style={headerSubtitle}>
-          How do you feel today, {userName || "there"}?
+          This heading is only in the native build. If you can read this,
+          we’re pulling from the local bundle, not the live site.
         </p>
       </header>
 

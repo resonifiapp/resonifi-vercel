@@ -371,6 +371,13 @@ export default function Insights() {
   const navigate = useNavigate();
   const [cycleEnabled, setCycleEnabled] = useState(false);
 
+  // 🔹 Plausible: insights viewed
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.plausible) {
+      window.plausible("Insights Viewed");
+    }
+  }, []);
+
   useEffect(() => {
     const enabled = readCycleEnabled();
     setCycleEnabled(enabled);
@@ -466,9 +473,7 @@ export default function Insights() {
                   ? `These Wellness Categories have been moving up compared to the previous window of check-ins over the last couple of weeks: ${rising
                       .map((k) => PILLARS.find((p) => p.key === k)?.label)
                       .filter(Boolean)
-                      .join(
-                        ", "
-                      )}. Notice what might be supporting that lift – routines, people, places – and consider protecting more of that time.`
+                      .join(", ")}. Notice what might be supporting that lift – routines, people, places – and consider protecting more of that time.`
                   : hasHistory
                   ? "Nothing is clearly lifting yet. Day-to-day ups and downs are normal, so this only lights up when there is a clearer upward drift over your recent check-ins."
                   : "As you build up about two weeks of history, this will highlight Wellness Categories that are gently lifting over time."}
@@ -482,9 +487,7 @@ export default function Insights() {
                   ? `These Wellness Categories have dipped compared to the previous window of check-ins in the last couple of weeks: ${needsCare
                       .map((k) => PILLARS.find((p) => p.key === k)?.label)
                       .filter(Boolean)
-                      .join(
-                        ", "
-                      )}. Treat this as a soft nudge to check in with yourself there, not a verdict or a scorecard.`
+                      .join(", ")}. Treat this as a soft nudge to check in with yourself there, not a verdict or a scorecard.`
                   : hasHistory
                   ? "No categories are showing a clear downward move right now. If a day feels off, your notes and detailed check-ins are still the best place to unpack what is going on."
                   : "Once you have around two weeks of entries, this will gently flag areas that might benefit from a little more attention."}
@@ -498,9 +501,7 @@ export default function Insights() {
                   ? `We don’t yet have enough recent scores in these Wellness Categories to compare two short windows from the last couple of weeks: ${waiting
                       .map((k) => PILLARS.find((p) => p.key === k)?.label)
                       .filter(Boolean)
-                      .join(
-                        ", "
-                      )}. Keep checking in and they’ll naturally move into the lifting or needs care lines as the pattern becomes clearer.`
+                      .join(", ")}. Keep checking in and they’ll naturally move into the lifting or needs care lines as the pattern becomes clearer.`
                   : "Right now we have enough recent check-ins across all categories to show simple movement where it exists."}
               </p>
             </div>

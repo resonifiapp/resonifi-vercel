@@ -6,6 +6,19 @@ const DEFAULT_LENGTH = 28;
 const DEFAULT_PERIOD_DAYS = 5;
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
+/* ---------- Plausible helper ---------- */
+
+function track(eventName, props) {
+  if (typeof window === "undefined") return;
+  try {
+    if (window.plausible && typeof window.plausible === "function") {
+      window.plausible(eventName, props ? { props } : undefined);
+    }
+  } catch (err) {
+    console.error("Plausible error:", err);
+  }
+}
+
 /* ---------- Helpers ---------- */
 
 function atMidnight(date) {
@@ -367,6 +380,11 @@ export default function CycleTracking() {
     }
   }, []);
 
+  // Plausible: view event
+  useEffect(() => {
+    track("CycleTracking Viewed");
+  }, []);
+
   const summary = useMemo(
     () => computeSummary(lastStart, lastEnd, length),
     [lastStart, lastEnd, length]
@@ -392,12 +410,18 @@ export default function CycleTracking() {
 
   function handleSaveDetails() {
     persistCycle(notes);
+    track("Cycle Details Saved", {
+      hasLastStart: Boolean(lastStart),
+      hasLastEnd: Boolean(lastEnd),
+    });
     setStatus("Saved ✓");
     setTimeout(() => setStatus(""), 2000);
   }
 
   function handleDayClick(dateKey) {
     setSelectedDateKey(dateKey);
+    track("Cycle Day Selected", { dateKey });
+
     if (!summary) {
       setSelectedInfo(describeDate(new Date(`${dateKey}T00:00:00`), null));
       return;

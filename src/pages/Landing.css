@@ -1,242 +1,218 @@
 /* Layout wrapper */
 .landing-page {
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    padding: 56px 16px 32px; /* space from top for notch/camera */
-    box-sizing: border-box;
-    background: #020617; /* dark navy */
-    color: #e5e7eb;      /* slate-200 */
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  }
-  
-  /* Inner frame */
+  min-height: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 0 0 32px; /* top handled by AppShell safe-area; only add bottom */
+  box-sizing: border-box;
+  background: #020617; /* dark navy */
+  color: #e5e7eb;      /* slate-200 */
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Inner frame */
+.landing-frame {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+/* LOGO ROW (replaces old top row + pill) */
+.landing-logo-row {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.landing-logo {
+  height: 120px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+
+/* MAIN COLUMNS */
+.landing-columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px;
+}
+
+/* Left column: text */
+.landing-left {
+  flex: 1 1 260px;
+}
+
+.landing-tag {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #38bdf8;
+  margin-bottom: 12px;
+}
+
+.landing-h1 {
+  font-size: 28px;
+  line-height: 1.2;
+  margin: 0 0 16px;
+  color: #f9fafb;
+}
+
+.landing-body {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #cbd5f5;
+  margin-bottom: 24px;
+}
+
+/* Buttons row */
+.landing-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.landing-btn {
+  border-radius: 999px;
+  border: none;
+  font-size: 14px;
+  padding: 10px 18px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+/* PRIMARY: teal/blue-ish for Open the app */
+.landing-btn-primary {
+  background: linear-gradient(135deg, #22d3ee, #0ea5e9, #1d4ed8);
+  color: #020617;
+}
+
+/* SECONDARY: blue gradient for What is Resonifi? */
+.landing-btn-secondary {
+  background: linear-gradient(135deg, #4f46e5, #22d3ee);
+  border: none;
+  color: #ffffff;
+}
+
+/* Right column: card */
+.landing-right {
+  flex: 1 1 260px;
+}
+
+.landing-card {
+  background: rgba(15, 23, 42, 0.9);
+  border-radius: 16px;
+  padding: 20px 20px 18px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.75);
+}
+
+.landing-card-label {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  margin: 0 0 6px;
+}
+
+.landing-card-title {
+  font-size: 18px;
+  margin: 0 0 10px;
+  color: #f9fafb;
+}
+
+.landing-card-body {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #cbd5f5;
+  margin: 0 0 16px;
+}
+
+/* Wellness ring row */
+.landing-ring-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.landing-ring-outer {
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 30% 20%, #22d3ee, #1d4ed8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.landing-ring-inner {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  background: #020617;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #e5e7eb;
+  font-size: 16px;
+}
+
+.landing-ring-caption-top {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #9ca3af;
+  margin: 0 0 4px;
+}
+
+.landing-ring-caption-bottom {
+  font-size: 13px;
+  font-weight: 500;
+  color: #e5e7eb;
+  margin: 0;
+}
+
+/* Pillar list */
+.landing-pillar-list {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #cbd5f5;
+}
+
+/* Footer text */
+.landing-founder-line {
+  margin-top: 32px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: #9ca3af;
+}
+
+.landing-footer {
+  margin-top: 10px;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+/* Mobile tweaks */
+@media (max-width: 640px) {
   .landing-frame {
-    width: 100%;
-    max-width: 900px;
-    margin: 0 auto;
+    padding: 0 12px;
   }
-  
-  /* HEADER */
-  .landing-top-row {
-    display: flex;
-    align-items: flex-start;   /* align tops of logo + pill */
+
+  .landing-logo-row {
     justify-content: flex-start;
-    gap: 32px;
-    margin-bottom: 40px;
-    padding-left: 8px;         /* slight inset from edge */
-  }
-  
-  .landing-logo {
-    height: 120px;
-    width: auto;
-    object-fit: contain;
-    flex-shrink: 0;
-    display: block;
-  }
-  
-  /* Cyan pill badge */
-  .landing-pill {
-    margin-left: 16px;         /* small gap from logo */
-    margin-top: 0;             /* align top with spiral */
-    padding: 12px 20px;
-    border-radius: 999px;
-    background: rgba(56, 189, 248, 0.12);
-    border: 1px solid rgba(56, 189, 248, 0.4);
-    color: #38bdf8;
-    font-size: 12px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    text-align: right;
-    line-height: 1.6;
-    white-space: nowrap;
-  }
-  
-  /* MAIN ROW */
-  .landing-main-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 32px;
-  }
-  
-  /* Left column: text */
-  .landing-hero-col {
-    flex: 1 1 260px;
-  }
-  
-  .landing-tag {
-    font-size: 11px;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: #38bdf8;
-    margin-bottom: 12px;
-  }
-  
-  .landing-h1 {
-    font-size: 28px;
-    line-height: 1.2;
-    margin: 0 0 16px;
-    color: #f9fafb;
-  }
-  
-  .landing-body {
-    font-size: 14px;
-    line-height: 1.6;
-    color: #cbd5f5;
     margin-bottom: 24px;
   }
-  
-  /* Buttons row */
-  .landing-buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
+
+  .landing-logo {
+    height: 100px;
   }
-  
-  .landing-btn {
-    border-radius: 999px;
-    border: none;
-    font-size: 14px;
-    padding: 10px 18px;
-    cursor: pointer;
-    font-weight: 500;
+
+  .landing-columns {
+    flex-direction: column;
   }
-  
-  /* PRIMARY: teal/blue-ish for Open the app */
-  .landing-btn-primary {
-    background: linear-gradient(135deg, #22d3ee, #0ea5e9, #1d4ed8);
-    color: #020617;
-  }
-  
-  /* SECONDARY: blue gradient for What is Resonifi? */
-  .landing-btn-secondary {
-    background: linear-gradient(135deg, #4f46e5, #22d3ee);
-    border: none;
-    color: #ffffff;
-  }
-  
-  /* Right column: card */
-  .landing-card-col {
-    flex: 1 1 260px;
-  }
-  
-  .landing-card {
-    background: rgba(15, 23, 42, 0.9);
-    border-radius: 16px;
-    padding: 20px 20px 18px;
-    border: 1px solid rgba(148, 163, 184, 0.25);
-    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.75);
-  }
-  
-  .landing-card-label {
-    font-size: 11px;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: #9ca3af;
-    margin: 0 0 6px;
-  }
-  
-  .landing-card-title {
-    font-size: 18px;
-    margin: 0 0 10px;
-    color: #f9fafb;
-  }
-  
-  .landing-card-body {
-    font-size: 13px;
-    line-height: 1.6;
-    color: #cbd5f5;
-    margin: 0 0 16px;
-  }
-  
-  /* Wellness ring row */
-  .landing-ring-row {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 14px;
-  }
-  
-  .landing-ring-outer {
-    width: 64px;
-    height: 64px;
-    border-radius: 999px;
-    background: radial-gradient(circle at 30% 20%, #22d3ee, #1d4ed8);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  .landing-ring-inner {
-    width: 42px;
-    height: 42px;
-    border-radius: 999px;
-    background: #020617;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    color: #e5e7eb;
-    font-size: 16px;
-  }
-  
-  .landing-ring-caption-top {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: #9ca3af;
-    margin: 0 0 4px;
-  }
-  
-  .landing-ring-caption-bottom {
-    font-size: 13px;
-    font-weight: 500;
-    color: #e5e7eb;
-    margin: 0;
-  }
-  
-  /* Pillar list */
-  .landing-pillar-list {
-    font-size: 12px;
-    line-height: 1.6;
-    color: #cbd5f5;
-  }
-  
-  /* Footer text */
-  .landing-founder-line {
-    margin-top: 32px;
-    font-size: 12px;
-    line-height: 1.7;
-    color: #9ca3af;
-  }
-  
-  .landing-footer {
-    margin-top: 10px;
-    font-size: 11px;
-    color: #6b7280;
-  }
-  
-  /* Mobile tweaks */
-  @media (max-width: 640px) {
-    .landing-page {
-      padding: 40px 16px 24px;
-    }
-  
-    .landing-top-row {
-      gap: 16px;
-      padding-left: 0;
-    }
-  
-    .landing-logo {
-      height: 100px;
-    }
-  
-    .landing-pill {
-      margin-left: 8px;
-    }
-  
-    .landing-main-row {
-      flex-direction: column;
-    }
-  }
-  
+}

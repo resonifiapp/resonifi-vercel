@@ -1,5 +1,6 @@
 {
   "appId": "com.resonifi.app",
   "appName": "Resonifi",
-  "webDir": "dist"
+  "webDir": "dist",
+  "bundledWebRuntime": false
 }

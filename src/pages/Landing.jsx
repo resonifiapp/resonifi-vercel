@@ -1,4 +1,5 @@
 // src/pages/Landing.jsx
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/resonifi-logo-landing.png";
 import "./Landing.css";
@@ -6,26 +7,24 @@ import "./Landing.css";
 export default function Landing() {
   const navigate = useNavigate();
 
+  useEffect(() => {
+    window.plausible?.("Landing Viewed");
+  }, []);
+
   return (
     <div className="landing-page">
       <div className="landing-frame">
-        {/* HEADER */}
-        <div className="landing-top-row">
-          <img src={logo} alt="Resonifi logo" className="landing-logo" />
 
-          <div className="landing-pill">
-            EARLY ACCESS
-            <br />
-            PERSONAL
-            <br />
-            WELLNESS OS
-          </div>
+        {/* LOGO ROW (centered, no pill) */}
+        <div className="landing-logo-row">
+          <img src={logo} alt="Resonifi logo" className="landing-logo" />
         </div>
 
-        {/* MAIN */}
-        <div className="landing-main-row">
-          {/* HERO TEXT */}
-          <div className="landing-hero-col">
+        {/* MAIN CONTENT */}
+        <div className="landing-columns">
+          
+          {/* LEFT COLUMN — TEXT */}
+          <div className="landing-left">
             <p className="landing-tag">
               FOR PEOPLE WHO FEEL MORE THAN THEY TRACK
             </p>
@@ -44,7 +43,10 @@ export default function Landing() {
               <button
                 type="button"
                 className="landing-btn landing-btn-primary"
-                onClick={() => navigate("/app")}
+                onClick={() => {
+                  window.plausible?.("Landing Open App Clicked");
+                  navigate("/app");
+                }}
               >
                 Open the app
               </button>
@@ -52,15 +54,18 @@ export default function Landing() {
               <button
                 type="button"
                 className="landing-btn landing-btn-secondary"
-                onClick={() => navigate("/onboarding")}
+                onClick={() => {
+                  window.plausible?.("Landing What Is Resonifi Clicked");
+                  navigate("/onboarding");
+                }}
               >
                 What is Resonifi?
               </button>
             </div>
           </div>
 
-          {/* WELLNESS INDEX CARD */}
-          <div className="landing-card-col">
+          {/* RIGHT COLUMN — WELLNESS CARD */}
+          <div className="landing-right">
             <div className="landing-card">
               <p className="landing-card-label">AT A GLANCE</p>
               <h2 className="landing-card-title">What is the Wellness Index?</h2>
@@ -78,7 +83,7 @@ export default function Landing() {
 
                 <div>
                   <p className="landing-ring-caption-top">
-                    TODAY&apos;S SNAPSHOT
+                    TODAY&apos;s SNAPSHOT
                   </p>
                   <p className="landing-ring-caption-bottom">
                     WELLNESS INDEX™
@@ -101,7 +106,7 @@ export default function Landing() {
           </div>
         </div>
 
-        {/* FOUNDER LINE + FOOTER */}
+        {/* FOOTER */}
         <p className="landing-founder-line">
           Built by a teacher who walked the Camino and wanted a calmer way to
           look at life than another productivity dashboard. No gamification, no
@@ -109,6 +114,7 @@ export default function Landing() {
         </p>
 
         <p className="landing-footer">© 2025 Resonifi. All rights reserved.</p>
+
       </div>
     </div>
   );
