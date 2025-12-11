@@ -1,70 +1,114 @@
 // src/App.jsx
+import React from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
 
-import React, { useEffect } from "react";
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-
-import AppShell from "./components/AppShell";
-
-import Home from "./pages/Home";
-import DailyCheckinPage from "./pages/DailyCheckinPage";
-import Insights from "./pages/Insights";
-import Journal from "./pages/Journal";
-import CycleTracking from "./pages/CycleTracking";
-import Account from "./pages/Account";
-import Onboarding from "./pages/Onboarding";
-import PillarDetail from "./pages/PillarDetail";
-import InsightsWhy from "./pages/InsightsWhy";
+import AppShell from "./components/AppShell.jsx";
 import Landing from "./pages/Landing";
 
+// Pages that exist in your project
+import Home from "./pages/Home.jsx";
+import CheckIn from "./pages/DailyCheckinPage.jsx";
+import Insights from "./pages/Insights.jsx";
+import Account from "./pages/Account.jsx";        // Profile / settings page
+import Onboarding from "./pages/Onboarding.jsx";  // Guided walkthrough
+import CycleTracking from "./pages/CycleTracking.jsx";
+import PillarDetail from "./pages/PillarDetail.jsx";
+
 export default function App() {
-  const location = useLocation();
-
-  // Fire Plausible pageview on route change
-  useEffect(() => {
-    try {
-      if (
-        typeof window !== "undefined" &&
-        typeof window.plausible === "function"
-      ) {
-        window.plausible("pageview", {
-          props: {
-            path: location.pathname,
-          },
-        });
-      }
-    } catch (err) {
-      console.error("Plausible tracking error:", err);
-    }
-  }, [location.pathname, location.search]);
-
-  // Hide the in-app bottom nav on the public landing page
-  const hideBottomNav = location.pathname === "/";
-
   return (
-    <AppShell hideBottomNav={hideBottomNav}>
-      <Routes>
-        {/* Public marketing / landing page */}
-        <Route path="/" element={<Landing />} />
+    <Routes>
+      {/* Landing – no bottom nav */}
+      <Route
+        path="/"
+        element={
+          <AppShell hideBottomNav={true}>
+            <Landing />
+          </AppShell>
+        }
+      />
 
-        {/* Core app lives under /app */}
-        <Route path="/app" element={<Home />} />
-        <Route path="/home" element={<Navigate to="/app" replace />} />
+      {/* Home */}
+      <Route
+        path="/home"
+        element={
+          <AppShell>
+            <Home />
+          </AppShell>
+        }
+      />
 
-        {/* App pages */}
-        <Route path="/check-in" element={<DailyCheckinPage />} />
-        <Route path="/insights" element={<Insights />} />
-        <Route path="/journal" element={<Journal />} />
-        <Route path="/cycle-tracking" element={<CycleTracking />} />
-        <Route path="/account" element={<Account />} />
-        <Route path="/onboarding" element={<Onboarding />} />
+      {/* Home alias for BottomNav ("/app" → Home) */}
+      <Route
+        path="/app"
+        element={
+          <AppShell>
+            <Home />
+          </AppShell>
+        }
+      />
 
-        {/* Pillar detail + insights explainer */}
-        <Route path="/pillar/:pillarId" element={<PillarDetail />} />
-        <Route path="/insights-why" element={<InsightsWhy />} />
+      {/* Check-in */}
+      <Route
+        path="/check-in"
+        element={
+          <AppShell>
+            <CheckIn />
+          </AppShell>
+        }
+      />
 
-        {/* Catch-all: send unknown routes to app home */}
-        <Route path="*" element={<Navigate to="/app" replace />} />
-      </Routes>
-    </AppShell>
+      {/* Cycle Tracking */}
+      <Route
+        path="/cycle-tracking"
+        element={
+          <AppShell>
+            <CycleTracking />
+          </AppShell>
+        }
+      />
+
+      {/* Insights */}
+      <Route
+        path="/insights"
+        element={
+          <AppShell>
+            <Insights />
+          </AppShell>
+        }
+      />
+
+      {/* Account / Profile page */}
+      <Route
+        path="/account"
+        element={
+          <AppShell>
+            <Account />
+          </AppShell>
+        }
+      />
+
+      {/* Onboarding walkthrough (from Landing or Account) */}
+      <Route
+        path="/onboarding"
+        element={
+          <AppShell hideBottomNav={true}>
+            <Onboarding />
+          </AppShell>
+        }
+      />
+
+      {/* Pillar detail pages */}
+      <Route
+        path="/pillar/:pillarId"
+        element={
+          <AppShell>
+            <PillarDetail />
+          </AppShell>
+        }
+      />
+
+      {/* Fallback – anything unknown goes back to Landing */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }

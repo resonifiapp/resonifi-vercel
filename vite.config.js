@@ -4,13 +4,15 @@ import path from "path";
 
 export default defineConfig({
   plugins: [react()],
+  base: "", // 👈 IMPORTANT for Capacitor/iOS
+
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
     },
   },
   server: {
-    host: true,   // 👈 allow access from your iPhone on the LAN
-    port: 5173,   // 👈 keep this matching capacitor.config.json
+    host: true, // allow access from your iPhone on the LAN
+    port: 5173, // keep this matching capacitor.config.json
   },
 });

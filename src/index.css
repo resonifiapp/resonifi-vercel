@@ -141,3 +141,16 @@ body,
     transform: scale(1);
   }
 }
+
+/* --------------------------------------------- */
+/* NEW: Consistent top spacing for headings      */
+/* --------------------------------------------- */
+.page-header {
+  margin-top: 18px;
+}
+
+@media (max-width: 640px) {
+  .page-header {
+    margin-top: 22px;
+  }
+}

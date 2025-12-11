@@ -25,8 +25,8 @@ export default function BottomNav() {
   const items = [
     { key: "home", label: "Home", icon: "🏠", path: "/app" },
     { key: "checkin", label: "Check-in", icon: "✨", path: "/check-in" },
-    { key: "insights", label: "Insights", icon: "📊", path: "/insights" },
-    { key: "account", label: "Account", icon: "👤", path: "/account" },
+    { key: "insights", label: "Me", icon: "📊", path: "/insights" },
+    { key: "account", label: "Profile", icon: "👤", path: "/account" },
   ];
 
   function isActive(path) {
@@ -45,7 +45,7 @@ export default function BottomNav() {
     gap: "2px",
     cursor: "pointer",
     padding: "4px 2px",
-    borderRadius: 0, // no pill shapes
+    borderRadius: 0,
     backgroundColor: "transparent",
     border: "none",
     fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif",

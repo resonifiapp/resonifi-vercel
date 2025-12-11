@@ -7,45 +7,64 @@ const steps = [
     id: 1,
     title: "Welcome to Resonifi",
     tag: "Big picture",
-    body: "Resonifi is a simple daily check-in tool. It helps you see how your inner and outer life are adding up over time — without judgement, advice, or noise.",
+    body:
+      "Resonifi is a simple daily check in tool. It helps you see how your inner and outer life are adding up over time, without judgement, advice, or noise.",
     bullets: [
       "Built for real life, not perfection",
       "Short daily reflections, not a therapy session",
-      "Your data stays on your account — it’s your story",
+      "Your data stays on your account, it is your story",
     ],
   },
+
+  // MINSPAN STEP
   {
     id: 2,
-    title: "Your five pillars",
-    tag: "Framework",
-    body: "Every day, you check in on five core pillars of your life. Together, they make up your overall Wellness Index™.",
+    title: "What Mindspan Really Means",
+    tag: "Clarity",
+    body:
+      "Mindspan is the stability of your inner world over time. It is the space between stimulus and response. It is where good decisions, emotional balance, and personal clarity live.",
     bullets: [
-      "Emotional – mood, stress, resilience, and your inner world",
-      "Physical – energy, movement, rest, and how your body feels",
-      "Spiritual – connection, meaning, purpose, and ‘bigger than me’",
-      "Financial – stability, control, and confidence with money",
-      "Digital wellness – screen time, online noise, and your relationship with tech",
+      "Mindspan grows as your awareness grows",
+      "Better clarity leads to better choices",
+      "Your Wellness Index reflects Mindspan over time",
     ],
   },
+
   {
     id: 3,
-    title: "Daily check-ins & the Wellness Index™",
-    tag: "How it works",
-    body: "Each check-in is a small snapshot of your day. Resonifi turns those snapshots into a simple Wellness Index™ you can feel, not obsess over.",
+    title: "Your five pillars",
+    tag: "Framework",
+    body:
+      "Every day, you check in on five core pillars of your life. Together, they make up your overall Wellness Index.",
     bullets: [
-      "Answer quick questions for each pillar using sliders",
-      "Add a short note or reflection if you like",
-      "Your latest check-in updates the Wellness Index™ on your Home screen",
+      "Emotional: mood, stress, resilience, and your inner world",
+      "Physical: energy, movement, rest, and how your body feels",
+      "Spiritual: connection, meaning, purpose, and bigger than me",
+      "Financial: stability, control, and confidence with money",
+      "Digital wellness: screen time, online noise, and your relationship with tech",
     ],
   },
   {
     id: 4,
-    title: "Your data, your pace",
-    tag: "Safety & privacy",
-    body: "Resonifi is a reflection tool, not a crisis service. It’s here to help you notice patterns, not to turn your life into ad targeting.",
+    title: "Daily check ins and the Wellness Index",
+    tag: "How it works",
+    body:
+      "Each check in is a small snapshot of your day. Resonifi turns those snapshots into a simple Wellness Index you can feel, not obsess over.",
     bullets: [
-      "Check-ins are stored privately in your own account on this device",
-      "We don’t sell reproductive or wellness data — ever",
+      "Answer quick questions for each pillar using sliders",
+      "Add a short note or reflection if you like",
+      "Your latest check in updates the Index on your Home screen",
+    ],
+  },
+  {
+    id: 5,
+    title: "Your data, your pace",
+    tag: "Safety and privacy",
+    body:
+      "Resonifi is a reflection tool, not a crisis service. It is here to help you notice patterns, not to turn your life into data for advertisers.",
+    bullets: [
+      "Check ins are stored privately in your own account on this device",
+      "We do not sell reproductive or wellness data",
       "You can pause, skip days, or stop any time and pick it back up later",
     ],
   },
@@ -60,7 +79,9 @@ function StepDot({ active }) {
         height: "8px",
         borderRadius: "999px",
         margin: "0 4px",
-        background: active ? "rgba(176, 144, 255, 1)" : "rgba(176, 144, 255, 0.35)",
+        background: active
+          ? "rgba(176, 144, 255, 1)"
+          : "rgba(176, 144, 255, 0.35)",
         transition: "all 0.2s ease",
       }}
     />
@@ -76,7 +97,7 @@ function Onboarding() {
     if (current < steps.length - 1) {
       setCurrent(current + 1);
     } else {
-      navigate("/home");
+      navigate("/home");   // UPDATED
     }
   };
 
@@ -85,10 +106,12 @@ function Onboarding() {
   };
 
   const handleSkip = () => {
-    navigate("/home");
+    navigate("/home");    // UPDATED
   };
 
   const isLast = current === steps.length - 1;
+
+  const showFooterLine = isLast;
 
   return (
     <div
@@ -99,12 +122,8 @@ function Onboarding() {
         justifyContent: "center",
       }}
     >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "720px",
-        }}
-      >
+      <div style={{ width: "100%", maxWidth: "720px" }}>
+        
         {/* Header */}
         <header style={{ marginBottom: "1.5rem" }}>
           <h1
@@ -122,8 +141,7 @@ function Onboarding() {
               opacity: 0.7,
             }}
           >
-            A quick walkthrough of how Resonifi works before you start tracking
-            your own days.
+            A quick walkthrough of how Resonifi works before you start tracking your own days.
           </p>
         </header>
 
@@ -138,7 +156,7 @@ function Onboarding() {
             boxShadow: "0 22px 60px rgba(0, 0, 0, 0.55)",
           }}
         >
-          {/* Step header row */}
+          {/* Step header */}
           <div
             style={{
               display: "flex",
@@ -185,7 +203,6 @@ function Onboarding() {
             </button>
           </div>
 
-          {/* Body text */}
           <p
             style={{
               fontSize: "0.9rem",
@@ -232,7 +249,7 @@ function Onboarding() {
             ))}
           </ul>
 
-          {/* Footer: dots + buttons */}
+          {/* Footer */}
           <div
             style={{
               marginTop: "1.2rem",
@@ -251,12 +268,7 @@ function Onboarding() {
             </div>
 
             {/* Nav buttons */}
-            <div
-              style={{
-                display: "flex",
-                gap: "0.5rem",
-              }}
-            >
+            <div style={{ display: "flex", gap: "0.5rem" }}>
               <button
                 onClick={goBack}
                 disabled={current === 0}
@@ -267,7 +279,9 @@ function Onboarding() {
                   background:
                     current === 0 ? "transparent" : "rgba(12, 18, 40, 0.9)",
                   color:
-                    current === 0 ? "rgba(255,255,255,0.3)" : "#ffffff",
+                    current === 0
+                      ? "rgba(255,255,255,0.3)"
+                      : "#ffffff",
                   cursor: current === 0 ? "default" : "pointer",
                   fontSize: "0.8rem",
                 }}
@@ -295,7 +309,21 @@ function Onboarding() {
           </div>
         </section>
 
-        {/* Small note at bottom */}
+        {/* Footer line on final step */}
+        {showFooterLine && (
+          <p
+            style={{
+              marginTop: "1rem",
+              fontSize: "0.8rem",
+              opacity: 0.7,
+              textAlign: "center",
+            }}
+          >
+            Resonifi is your Mindspan OS.
+          </p>
+        )}
+
+        {/* Bottom static note */}
         <p
           style={{
             marginTop: "1rem",
@@ -304,8 +332,9 @@ function Onboarding() {
             textAlign: "center",
           }}
         >
-          You can revisit this walkthrough any time from your Account screen.
+          You can revisit this walkthrough any time from your Profile screen.
         </p>
+
       </div>
     </div>
   );

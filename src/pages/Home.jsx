@@ -6,6 +6,10 @@ import { useNavigate } from "react-router-dom";
 const HISTORY_KEY = "resonifi_checkins_v1";
 const NAME_KEY = "resonifi_user_name";
 
+// Align with Account / CycleTracking keys
+const CYCLE_ENABLED_KEY = "resonifi_cycle_enabled_v1";
+const CYCLE_NEXT_KEY = "resonifi_cycle_nextExpected";
+
 const PILLARS = [
   { id: "emotional", label: "Emotional" },
   { id: "physical", label: "Physical" },
@@ -21,41 +25,34 @@ export default function Home() {
   const [indexValue, setIndexValue] = useState(null);
   const [userName, setUserName] = useState("");
 
-  // 🔹 Plausible: app home opened
+  const [showCycleCard, setShowCycleCard] = useState(false);
+  const [nextPeriod, setNextPeriod] = useState("");
+
+  // Plausible: app home opened
   useEffect(() => {
-    if (typeof window !== "undefined" && window.plausible) {
-      window.plausible("App Opened");
-    }
+    if (window?.plausible) window.plausible("App Opened");
   }, []);
 
-  // Load latest check-in and index
+  // Load latest check-in & compute index
   useEffect(() => {
     try {
-      const raw = window.localStorage.getItem(HISTORY_KEY);
+      const raw = localStorage.getItem(HISTORY_KEY);
       if (!raw) return;
 
       const arr = JSON.parse(raw);
       if (!Array.isArray(arr) || arr.length === 0) return;
 
-      // newest first
-      const sorted = [...arr].sort((a, b) => {
-        const ta = new Date(a.timestamp || 0).getTime();
-        const tb = new Date(b.timestamp || 0).getTime();
-        return tb - ta;
-      });
+      arr.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-      const newest = sorted[0];
+      const newest = arr[0];
       setLatest(newest);
 
-      // Prefer stored index (0–100)
-      const stored = Number(newest.index);
-      if (Number.isFinite(stored)) {
-        const clamped = Math.max(0, Math.min(100, stored));
-        setIndexValue(clamped);
+      const storedIndex = Number(newest.index);
+      if (Number.isFinite(storedIndex)) {
+        setIndexValue(Math.max(0, Math.min(100, storedIndex)));
         return;
       }
 
-      // Fallback: compute from pillars 1–10 → 0–100
       const keys = ["emotional", "physical", "spiritual", "financial", "digital"];
       let sum = 0;
       let count = 0;
@@ -64,33 +61,41 @@ export default function Home() {
         const num = Number(newest[key]);
         if (Number.isFinite(num)) {
           sum += num;
-          count += 1;
+          count++;
         }
       });
 
-      if (count > 0) {
-        const avg = sum / count; // 1–10
-        const percent = Math.round(avg * 10); // 0–100
-        setIndexValue(percent);
-      }
+      if (count > 0) setIndexValue(Math.round((sum / count) * 10));
     } catch (err) {
-      console.error("Error loading latest check-in for Home:", err);
+      console.error("Home check-in load error:", err);
     }
   }, []);
 
-  // Load stored name from Account page
+  // Load stored name
   useEffect(() => {
     try {
-      const storedName = window.localStorage.getItem(NAME_KEY);
-      if (storedName) {
-        setUserName(storedName);
-      }
-    } catch {
-      // ignore
-    }
+      const stored = localStorage.getItem(NAME_KEY);
+      if (stored) setUserName(stored);
+    } catch {}
   }, []);
 
-  // --- Styles ---
+  // Load cycle card toggle + next period label
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(CYCLE_ENABLED_KEY);
+      const enabled = raw === "true";
+      if (enabled) {
+        setShowCycleCard(true);
+        const next = localStorage.getItem(CYCLE_NEXT_KEY);
+        if (next) setNextPeriod(next);
+      } else {
+        setShowCycleCard(false);
+      }
+    } catch {}
+  }, []);
+
+  // ---------------- Styles ----------------
+
   const container = {
     backgroundColor: "#020617",
     color: "#f9fafb",
@@ -121,7 +126,6 @@ export default function Home() {
   };
 
   const ballOuter = {
-    position: "relative",
     width: 160,
     height: 160,
     borderRadius: "50%",
@@ -147,8 +151,6 @@ export default function Home() {
   const ballNumber = {
     fontSize: "32px",
     fontWeight: 600,
-    color: "#f9fafb",
-    lineHeight: 1,
   };
 
   const ballLabelOutside = {
@@ -158,14 +160,20 @@ export default function Home() {
     textTransform: "uppercase",
     color: "#cbd5e1",
     marginTop: "8px",
-    marginBottom: "24px",
+  };
+
+  const pillarsHint = {
+    textAlign: "center",
+    fontSize: "11px",
+    color: "#9ca3af",
+    marginTop: "4px",
+    marginBottom: "18px",
   };
 
   const pillarsRow = {
     display: "flex",
     justifyContent: "space-between",
     gap: "10px",
-    marginTop: "4px",
     marginBottom: "32px",
   };
 
@@ -194,10 +202,14 @@ export default function Home() {
     marginTop: "8px",
     fontSize: "11px",
     color: "#cbd5e1",
+    transition: "border-color 0.2s ease",
+    borderBottom: "1px solid transparent",
+    paddingBottom: "2px",
   };
 
   const bottomButtonWrapper = {
     marginTop: "auto",
+    marginBottom: "20px",
   };
 
   const bottomButton = {
@@ -213,11 +225,12 @@ export default function Home() {
     boxShadow: "0 16px 40px rgba(37,99,235,0.7)",
   };
 
+  // ---------------- Helpers ----------------
+
   function getPillarValue(id) {
-    if (!latest) return null;
+    if (!latest) return 0;
     const num = Number(latest[id]);
-    if (!Number.isFinite(num)) return null;
-    return Math.max(0, Math.min(10, num));
+    return Number.isFinite(num) ? Math.max(0, Math.min(10, num)) : 0;
   }
 
   function getPillarGradient(id) {
@@ -236,37 +249,37 @@ export default function Home() {
     }
   }
 
+  // ---------------- Render ----------------
+
   return (
     <div style={container}>
       <header>
         <h1 style={headerTitle}>
-          SAFE AREA TEST – HOW DO YOU FEEL TODAY, {userName || "there"}?
+          How do you feel today, {userName || "there"}?
         </h1>
         <p style={headerSubtitle}>
-          This heading is only in the native build. If you can read this,
-          we’re pulling from the local bundle, not the live site.
+          Your Wellness Index updates every time you check in. The more days you
+          track, the clearer your patterns become.
         </p>
       </header>
 
-      {/* Wellness Index ball */}
+      {/* Wellness Index */}
       <div style={ballWrapper}>
         <div style={ballOuter}>
           <div style={ballInner}>
-            <div style={ballNumber}>
-              {indexValue !== null ? indexValue : "—"}
-            </div>
+            <div style={ballNumber}>{indexValue ?? "—"}</div>
           </div>
         </div>
       </div>
 
-      {/* Label outside the circle */}
       <div style={ballLabelOutside}>WELLNESS INDEX™</div>
+      <p style={pillarsHint}>Tap a pillar to see its details</p>
 
       {/* Pillars */}
       <section style={pillarsRow}>
         {PILLARS.map((pillar) => {
           const val = getPillarValue(pillar.id);
-          const heightPercent = val ? (val / 10) * 100 : 0;
+          const heightPercent = (val / 10) * 100;
 
           return (
             <button
@@ -278,20 +291,39 @@ export default function Home() {
                 background: "none",
                 border: "none",
                 padding: 0,
+                cursor: "pointer",
+                transition: "transform 0.15s ease",
               }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.transform = "scale(1.06)")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.transform = "scale(1)")
+              }
             >
               <div style={tubeShell}>
                 <div
                   style={{
                     width: "100%",
                     height: `${heightPercent}%`,
-                    borderRadius: 9999,
                     background: getPillarGradient(pillar.id),
+                    borderRadius: 9999,
                     transition: "height 0.3s ease-out",
                   }}
                 />
               </div>
-              <span style={tubeLabel}>{pillar.label}</span>
+
+              <span
+                style={tubeLabel}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.borderColor = "#94a3b8")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.borderColor = "transparent")
+                }
+              >
+                {pillar.label} ›
+              </span>
             </button>
           );
         })}
@@ -307,6 +339,79 @@ export default function Home() {
           Start today&apos;s check-in
         </button>
       </div>
+
+      {/* Cycle tracking card – below main CTA */}
+      {showCycleCard && (
+        <section
+          style={{
+            marginBottom: "24px",
+            borderRadius: "16px",
+            border: "1px solid rgba(248,113,166,0.45)",
+            background:
+              "linear-gradient(135deg, rgba(30,64,175,0.95), rgba(76,29,149,0.98))",
+            padding: "14px 16px",
+            boxShadow: "0 18px 50px rgba(15,23,42,0.9)",
+          }}
+        >
+          <p
+            style={{
+              fontSize: "11px",
+              letterSpacing: "0.14em",
+              textTransform: "uppercase",
+              color: "#f9a8d4",
+              marginBottom: "4px",
+            }}
+          >
+            Cycle tracking
+          </p>
+
+          <p
+            style={{
+              fontSize: "0.95rem",
+              fontWeight: 600,
+              marginBottom: "4px",
+            }}
+          >
+            {nextPeriod
+              ? `Next expected period: ${nextPeriod}`
+              : "Add your cycle details to see your next expected period here."}
+          </p>
+
+          <p
+            style={{
+              fontSize: "0.8rem",
+              opacity: 0.8,
+              marginBottom: "10px",
+            }}
+          >
+            Your data is safe here. Resonifi keeps all cycle details on this
+            device only. Use this as a gentle planning signal, not a diagnosis.
+          </p>
+
+          <button
+            onClick={() => navigate("/cycle-tracking")}
+            style={{
+              padding: "10px 16px",
+              borderRadius: "999px",
+              border: "none",
+              background:
+                "linear-gradient(135deg, rgba(244,114,182,1), rgba(129,140,248,1))",
+              color: "#020617",
+              fontWeight: 600,
+              fontSize: "0.85rem",
+              cursor: "pointer",
+              boxShadow: "0 14px 36px rgba(236,72,153,0.45)",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+            }}
+          >
+            {nextPeriod
+              ? `View cycle details · Next: ${nextPeriod}`
+              : "Set up cycle tracking"}
+          </button>
+        </section>
+      )}
     </div>
   );
 }

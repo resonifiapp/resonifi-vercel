@@ -44,7 +44,12 @@ export default function DailyCheckin() {
 
   return (
     <div className="page">
-      <div className="page-title">Daily Check-In</div>
+      
+      {/* -------------------- */}
+      {/* MAIN PAGE HEADING    */}
+      {/* -------------------- */}
+      <div className="page-header page-title">Daily Check-In</div>
+
       <div className="page-subtitle">
         Slide each pillar to match how you feel right now. Your answers are saved
         on this device only.
@@ -90,9 +95,7 @@ export default function DailyCheckin() {
       ))}
 
       {/* Saved indicator */}
-      {saved && (
-        <div className="saved-text">Today’s check-in is saved.</div>
-      )}
+      {saved && <div className="saved-text">Today’s check-in is saved.</div>}
 
       {/* Save Button */}
       <button

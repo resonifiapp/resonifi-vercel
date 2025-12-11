@@ -6,83 +6,6 @@ import { useNavigate } from "react-router-dom";
 const HISTORY_KEY = "resonifi_checkins_v1";
 const TODAY_STATE_KEY = "resonifi_today_checkin_v1";
 
-// 🔸 Same config store as CycleTracking.jsx (cycle data)
-const CYCLE_STORAGE_KEY = "resonifi_cycle_v1";
-
-// 🔸 Feature toggle set in Account / Onboarding
-const CYCLE_ENABLED_KEY = "resonifi_cycle_enabled_v1";
-
-// --- Cycle helpers (mirrors CycleTracking.jsx) ---
-const DEFAULT_CYCLE_LENGTH = 28;
-const DEFAULT_PERIOD_DAYS = 5;
-const MS_PER_DAY = 1000 * 60 * 60 * 24;
-
-function atMidnight(date) {
-  const d = new Date(date.getTime());
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-function computeCycleSummary(lastStartStr, lastEndStr, length) {
-  if (!lastStartStr) return null;
-
-  const cycleLen = Number(length) || DEFAULT_CYCLE_LENGTH;
-  const start = atMidnight(new Date(`${lastStartStr}T00:00:00`));
-
-  let explicitEnd = null;
-  if (lastEndStr) {
-    explicitEnd = atMidnight(new Date(`${lastEndStr}T00:00:00`));
-  }
-
-  const periodDays = explicitEnd
-    ? Math.max(
-        1,
-        Math.round((explicitEnd.getTime() - start.getTime()) / MS_PER_DAY) + 1
-      )
-    : DEFAULT_PERIOD_DAYS;
-
-  const lastStart = start;
-  const lastEnd = explicitEnd
-    ? explicitEnd
-    : atMidnight(
-        new Date(start.getTime() + (DEFAULT_PERIOD_DAYS - 1) * MS_PER_DAY)
-      );
-
-  const today = atMidnight(new Date());
-  const diffFromStart = today.getTime() - start.getTime();
-
-  const dayOfCycle =
-    diffFromStart < 0 ? 1 : (Math.floor(diffFromStart / MS_PER_DAY) % cycleLen) + 1;
-
-  const cyclesPassed =
-    diffFromStart > 0 ? Math.floor(diffFromStart / (cycleLen * MS_PER_DAY)) : 0;
-
-  let nextStart = atMidnight(
-    new Date(start.getTime() + (cyclesPassed + 1) * cycleLen * MS_PER_DAY)
-  );
-  if (nextStart.getTime() <= today.getTime()) {
-    nextStart = atMidnight(new Date(nextStart.getTime() + cycleLen * MS_PER_DAY));
-  }
-  const nextEnd = atMidnight(
-    new Date(nextStart.getTime() + (periodDays - 1) * MS_PER_DAY)
-  );
-
-  return {
-    dayOfCycle,
-    length: cycleLen,
-    periodDays,
-    lastStart,
-    lastEnd,
-    nextStart,
-    nextEnd,
-  };
-}
-
-function formatISO(date) {
-  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
-  return date.toISOString().slice(0, 10); // YYYY-MM-DD
-}
-
 // ---- Question banks: 10 per pillar (ONE is used per day) ----
 const EMOTIONAL_QUESTIONS = [
   "How steady did your emotions feel overall today?",
@@ -154,31 +77,6 @@ function pickOneFromBank(bank, offset = 0) {
   const dayNumber = Math.floor(Date.now() / (1000 * 60 * 60 * 24)) + offset;
   const index = dayNumber % bank.length;
   return bank[index];
-}
-
-// 🔸 Robust checker for the toggle value in localStorage
-function readCycleEnabled() {
-  try {
-    if (typeof window === "undefined") return false;
-    const raw = window.localStorage.getItem(CYCLE_ENABLED_KEY);
-    if (raw == null) return false;
-
-    const normalized = String(raw).trim().toLowerCase();
-    if (["true", "yes", "on", "1", "enabled"].includes(normalized)) return true;
-    if (["false", "no", "off", "0", "disabled"].includes(normalized))
-      return false;
-
-    try {
-      const parsed = JSON.parse(raw);
-      if (parsed === true || parsed === "true") return true;
-      if (parsed === false || parsed === "false") return false;
-    } catch (_) {}
-
-    return false;
-  } catch (err) {
-    console.error("Error reading cycle enabled flag:", err);
-    return false;
-  }
 }
 
 // Reusable pillar section
@@ -257,11 +155,6 @@ export default function DailyCheckinPage() {
 
   const [reflection, setReflection] = useState("");
 
-  const [lastPeriodStart, setLastPeriodStart] = useState(null);
-  const [nextPeriodStart, setNextPeriodStart] = useState(null);
-
-  const [cycleEnabled, setCycleEnabled] = useState(false);
-
   const emotionalQuestion = pickOneFromBank(EMOTIONAL_QUESTIONS, 0);
   const physicalQuestion = pickOneFromBank(PHYSICAL_QUESTIONS, 11);
   const spiritualQuestion = pickOneFromBank(SPIRITUAL_QUESTIONS, 23);
@@ -287,31 +180,6 @@ export default function DailyCheckinPage() {
     } catch (err) {
       console.error("Error loading today's check-in state", err);
     }
-
-    const enabled = readCycleEnabled();
-    setCycleEnabled(enabled);
-
-    if (!enabled) return;
-
-    try {
-      const rawCycle = window.localStorage.getItem(CYCLE_STORAGE_KEY);
-      if (rawCycle) {
-        const parsed = JSON.parse(rawCycle);
-        const lastStartStr = parsed.lastStart || "";
-        const lastEndStr = parsed.lastEnd || "";
-        const len = parsed.length || DEFAULT_CYCLE_LENGTH;
-
-        const summary = computeCycleSummary(lastStartStr, lastEndStr, len);
-        if (summary) {
-          const lastISO = formatISO(summary.lastStart);
-          const nextISO = formatISO(summary.nextStart);
-          if (lastISO) setLastPeriodStart(lastISO);
-          if (nextISO) setNextPeriodStart(nextISO);
-        }
-      }
-    } catch (err) {
-      console.error("Error loading cycle info in DailyCheckinPage", err);
-    }
   }, [todayKey]);
 
   const page = {
@@ -328,27 +196,6 @@ export default function DailyCheckinPage() {
     fontSize: "22px",
     fontWeight: 600,
     marginBottom: "16px",
-  };
-
-  const periodCard = {
-    marginBottom: "20px",
-    padding: "14px 16px",
-    borderRadius: "14px",
-    background:
-      "linear-gradient(135deg, rgba(56,189,248,0.10), rgba(37,99,235,0.18))",
-    border: "1px solid rgba(125,211,252,0.4)",
-    boxShadow: "0 0 22px rgba(56,189,248,0.35)",
-    fontSize: "13px",
-    color: "#e0f2fe",
-    lineHeight: 1.5,
-  };
-
-  const periodTitle = {
-    fontSize: "12px",
-    textTransform: "uppercase",
-    letterSpacing: "0.18em",
-    marginBottom: "6px",
-    color: "rgba(226,232,240,0.9)",
   };
 
   const journalSection = {
@@ -412,6 +259,7 @@ export default function DailyCheckinPage() {
 
     const overallIndex = Math.round((avg / 10) * 100); // 0–100 %
 
+    // Save latest index for Home
     try {
       window.localStorage.setItem(
         "resonifi_latest_index",
@@ -421,6 +269,7 @@ export default function DailyCheckinPage() {
       console.error("Error saving wellness index", err);
     }
 
+    // Save check-in history
     try {
       const raw = window.localStorage.getItem(HISTORY_KEY);
       const existing = raw ? JSON.parse(raw) : [];
@@ -439,8 +288,6 @@ export default function DailyCheckinPage() {
         spiritualQuestions: [{ text: spiritualQuestion, value: spiritualScore }],
         financialQuestions: [{ text: financialQuestion, value: financialScore }],
         digitalQuestions: [{ text: digitalQuestion, value: digitalScore }],
-        lastPeriodStart: lastPeriodStart || null,
-        nextPeriodStart: nextPeriodStart || null,
       };
 
       const updated = [newEntry, ...existing];
@@ -449,6 +296,7 @@ export default function DailyCheckinPage() {
       console.error("Error saving check-in history", err);
     }
 
+    // Save today's partial state
     try {
       const todayState = {
         date: todayKey,
@@ -468,6 +316,7 @@ export default function DailyCheckinPage() {
       console.error("Error saving today's check-in state", err);
     }
 
+    // Analytics
     if (typeof window !== "undefined" && window.plausible) {
       window.plausible("Check-in Completed");
     }
@@ -477,21 +326,9 @@ export default function DailyCheckinPage() {
 
   return (
     <div style={page}>
-      <h1 style={title}>Daily Check-In</h1>
-
-      {cycleEnabled && (
-        <div style={periodCard}>
-          <div style={periodTitle}>CYCLE OVERVIEW</div>
-          <div>
-            <strong>Last period start:</strong>{" "}
-            {lastPeriodStart ? lastPeriodStart : "Not set"}
-          </div>
-          <div style={{ marginTop: "4px" }}>
-            <strong>Next expected period:</strong>{" "}
-            {nextPeriodStart ? nextPeriodStart : "Not set"}
-          </div>
-        </div>
-      )}
+      <h1 className="page-header" style={title}>
+        Daily Check-In
+      </h1>
 
       <PillarSection
         title="Emotional"

@@ -176,7 +176,7 @@ function computeTrends(entries) {
   return { rising, needsCare, steady, waiting };
 }
 
-// 🔸 Robust checker for the toggle value in localStorage
+// Robust checker for the toggle value in localStorage
 function readCycleEnabled() {
   try {
     if (typeof window === "undefined") return false;
@@ -371,7 +371,7 @@ export default function Insights() {
   const navigate = useNavigate();
   const [cycleEnabled, setCycleEnabled] = useState(false);
 
-  // 🔹 Plausible: insights viewed
+  // Plausible: insights viewed
   useEffect(() => {
     if (typeof window !== "undefined" && window.plausible) {
       window.plausible("Insights Viewed");
@@ -461,22 +461,22 @@ export default function Insights() {
             <p style={{ ...smallText, marginTop: 6 }}>
               Resonifi looks at roughly the last two weeks of check-ins. It
               compares your most recent few entries with the few just before
-              them and surfaces gentle lifts and dips – not diagnoses – so you
-              can see where things may be trending and decide where to give
-              yourself a bit more care.
+              them and surfaces gentle ups and downs, not diagnoses, so you can
+              see where things may be trending and decide where to give yourself
+              a bit more care.
             </p>
 
             <div style={{ marginTop: 10 }}>
-              <p style={miniLabel}>Lifting</p>
+              <p style={miniLabel}>Improving</p>
               <p style={{ ...smallP, marginTop: 2 }}>
                 {rising.length
-                  ? `These Wellness Categories have been moving up compared to the previous window of check-ins over the last couple of weeks: ${rising
+                  ? `These Wellness Categories have been gently improving compared to the previous window of check-ins over the last couple of weeks: ${rising
                       .map((k) => PILLARS.find((p) => p.key === k)?.label)
                       .filter(Boolean)
-                      .join(", ")}. Notice what might be supporting that lift – routines, people, places – and consider protecting more of that time.`
+                      .join(", ")}. Notice what might be supporting that shift: routines, people, places. You may want to protect a bit more of that time.`
                   : hasHistory
-                  ? "Nothing is clearly lifting yet. Day-to-day ups and downs are normal, so this only lights up when there is a clearer upward drift over your recent check-ins."
-                  : "As you build up about two weeks of history, this will highlight Wellness Categories that are gently lifting over time."}
+                  ? "Nothing is clearly improving yet. Day to day ups and downs are normal, so this only appears when there is a clearer upward shift over your recent check ins."
+                  : "As you build up about two weeks of history, this will highlight Wellness Categories that are gently improving over time."}
               </p>
             </div>
 
@@ -501,7 +501,7 @@ export default function Insights() {
                   ? `We don’t yet have enough recent scores in these Wellness Categories to compare two short windows from the last couple of weeks: ${waiting
                       .map((k) => PILLARS.find((p) => p.key === k)?.label)
                       .filter(Boolean)
-                      .join(", ")}. Keep checking in and they’ll naturally move into the lifting or needs care lines as the pattern becomes clearer.`
+                      .join(", ")}. Keep checking in and they’ll naturally move into the improving or needs care lines as the pattern becomes clearer.`
                   : "Right now we have enough recent check-ins across all categories to show simple movement where it exists."}
               </p>
             </div>

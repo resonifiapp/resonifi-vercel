@@ -1,10 +1,13 @@
 // src/pages/CycleTracking.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 
 const STORAGE_KEY = "resonifi_cycle_v1";
 const DEFAULT_LENGTH = 28;
 const DEFAULT_PERIOD_DAYS = 5;
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+// Home reads this for next period label
+const CYCLE_NEXT_KEY = "resonifi_cycle_nextExpected";
 
 /* ---------- Plausible helper ---------- */
 
@@ -370,6 +373,10 @@ export default function CycleTracking() {
   const [selectedDateKey, setSelectedDateKey] = useState("");
   const [selectedInfo, setSelectedInfo] = useState(null);
 
+  // NEW: refs for date inputs so we can call showPicker()
+  const startInputRef = useRef(null);
+  const endInputRef = useRef(null);
+
   useEffect(() => {
     const saved = loadCycle();
     if (saved) {
@@ -399,6 +406,18 @@ export default function CycleTracking() {
 
   const nextPeriodText = summary ? formatDate(summary.nextStart) : "";
 
+  // Save next expected period label so Home can show it
+  useEffect(() => {
+    if (!summary || typeof window === "undefined") return;
+    const label = formatDate(summary.nextStart);
+    if (!label) return;
+    try {
+      window.localStorage.setItem(CYCLE_NEXT_KEY, label);
+    } catch {
+      // ignore
+    }
+  }, [summary]);
+
   function persistCycle(updatedNotes = notes) {
     saveCycle({
       lastStart,
@@ -418,7 +437,13 @@ export default function CycleTracking() {
     setTimeout(() => setStatus(""), 2000);
   }
 
+  // 🔴 KEY: First tap on calendar with no lastStart sets Last period start
   function handleDayClick(dateKey) {
+    if (!lastStart) {
+      setLastStart(dateKey);
+      return;
+    }
+
     setSelectedDateKey(dateKey);
     track("Cycle Day Selected", { dateKey });
 
@@ -540,6 +565,7 @@ export default function CycleTracking() {
             gap: "1.5rem",
           }}
         >
+          {/* LEFT COLUMN: inputs + next period date */}
           <div>
             <p
               style={{
@@ -565,8 +591,12 @@ export default function CycleTracking() {
               <input
                 id="cycle-last-start"
                 type="date"
+                ref={startInputRef}
                 value={lastStart}
                 onChange={(e) => setLastStart(e.target.value)}
+                onClick={() =>
+                  startInputRef.current?.showPicker?.()
+                }
                 style={{
                   width: "100%",
                   background: "#020617",
@@ -590,13 +620,18 @@ export default function CycleTracking() {
                   marginBottom: "0.3rem",
                 }}
               >
-                Last period end date <span style={{ opacity: 0.6 }}>(optional)</span>
+                Last period end date{" "}
+                <span style={{ opacity: 0.6 }}>(optional)</span>
               </label>
               <input
                 id="cycle-last-end"
                 type="date"
+                ref={endInputRef}
                 value={lastEnd}
                 onChange={(e) => setLastEnd(e.target.value)}
+                onClick={() =>
+                  endInputRef.current?.showPicker?.()
+                }
                 style={{
                   width: "100%",
                   background: "#020617",
@@ -641,6 +676,31 @@ export default function CycleTracking() {
               />
             </div>
 
+            {/* Next expected period on the same card */}
+            <div style={{ marginBottom: "1rem" }}>
+              <div
+                style={{
+                  fontSize: "0.78rem",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.16em",
+                  color: "#f9a8d4",
+                  marginBottom: "0.2rem",
+                }}
+              >
+                Next expected period
+              </div>
+              <div
+                style={{
+                  fontSize: "0.95rem",
+                  fontWeight: 600,
+                }}
+              >
+                {nextPeriodText
+                  ? nextPeriodText
+                  : "Enter your dates to see this."}
+              </div>
+            </div>
+
             <button
               type="button"
               onClick={handleSaveDetails}
@@ -671,6 +731,7 @@ export default function CycleTracking() {
             </div>
           </div>
 
+          {/* RIGHT COLUMN: Today's snapshot */}
           <div
             style={{
               background: "#020617",
