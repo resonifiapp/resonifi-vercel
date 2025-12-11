@@ -97,7 +97,8 @@ function Onboarding() {
     if (current < steps.length - 1) {
       setCurrent(current + 1);
     } else {
-      navigate("/home");   // UPDATED
+      // When finishing the last onboarding step, go to Account/Profile
+      navigate("/account");   // <--- CHANGE: was "/home"
     }
   };
 
@@ -106,11 +107,11 @@ function Onboarding() {
   };
 
   const handleSkip = () => {
-    navigate("/home");    // UPDATED
+    // Skipping onboarding also goes to Account/Profile
+    navigate("/account");     // <--- CHANGE: was "/home"
   };
 
   const isLast = current === steps.length - 1;
-
   const showFooterLine = isLast;
 
   return (
@@ -123,7 +124,6 @@ function Onboarding() {
       }}
     >
       <div style={{ width: "100%", maxWidth: "720px" }}>
-        
         {/* Header */}
         <header style={{ marginBottom: "1.5rem" }}>
           <h1
@@ -303,7 +303,7 @@ function Onboarding() {
                   cursor: "pointer",
                 }}
               >
-                {isLast ? "Finish and go to Home" : "Next"}
+                {isLast ? "Finish and go to Profile" : "Next"}
               </button>
             </div>
           </div>
@@ -334,7 +334,6 @@ function Onboarding() {
         >
           You can revisit this walkthrough any time from your Profile screen.
         </p>
-
       </div>
     </div>
   );
